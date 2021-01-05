@@ -18,6 +18,8 @@ public class EventarzEurekaClientApplication implements GreetingController {
 
     @Value("${spring.application.name}")
     private String appName;
+    @Value("${server.port}")
+    private String port;
 
     public static void main(String[] args) {
         SpringApplication.run(EventarzEurekaClientApplication.class, args);
@@ -26,6 +28,6 @@ public class EventarzEurekaClientApplication implements GreetingController {
     @Override
     public String greeting() {
         return String.format(
-                "Hello from '%s'!", eurekaClient.getApplication(appName).getName());
+                "Hello from '%s' at port %s!", eurekaClient.getApplication(appName).getName(), port);
     }
 }
