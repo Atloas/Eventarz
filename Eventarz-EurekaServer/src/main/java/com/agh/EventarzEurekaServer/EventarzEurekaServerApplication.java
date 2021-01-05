@@ -11,5 +11,4 @@ public class EventarzEurekaServerApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(EventarzEurekaServerApplication.class, args);
 	}
-
 }
