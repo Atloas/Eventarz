@@ -28,6 +28,6 @@ public class EventarzEurekaClientApplication implements GreetingController {
     @Override
     public String greeting() {
         return String.format(
-                "Hello from '%s' at port %s!", eurekaClient.getApplication(appName).getName(), port);
+                "Hello from '%s' at port %s!", appName, port);
     }
 }
