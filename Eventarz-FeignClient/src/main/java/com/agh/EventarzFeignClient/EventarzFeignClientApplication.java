@@ -25,5 +25,4 @@ public class EventarzFeignClientApplication {
 		model.addAttribute("greeting", greetingClient.greeting());
 		return "greeting-view";
 	}
-
 }
