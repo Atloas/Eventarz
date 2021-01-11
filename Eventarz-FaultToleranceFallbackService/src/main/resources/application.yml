@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: fault-tolerance-fallback-service
+
+server:
+  port: 8082
