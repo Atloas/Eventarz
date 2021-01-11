@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: fault-tolerance-service
+
+server:
+  port: 8081
