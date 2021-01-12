@@ -18,16 +18,16 @@ class SayHelloConfig {
     @Bean
     @Primary
     ServiceInstanceListSupplier serviceInstanceListSupplier() {
-        return new DemoServiceInstanceListSuppler("say-hello");
+        return new DemoServiceInstanceListSupplier("say-hello");
     }
 
 }
 
-class DemoServiceInstanceListSuppler implements ServiceInstanceListSupplier {
+class DemoServiceInstanceListSupplier implements ServiceInstanceListSupplier {
 
     private final String serviceId;
 
-    DemoServiceInstanceListSuppler(String serviceId) {
+    DemoServiceInstanceListSupplier(String serviceId) {
         this.serviceId = serviceId;
     }
 
