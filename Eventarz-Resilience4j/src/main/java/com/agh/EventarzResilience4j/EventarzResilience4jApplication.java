@@ -1,5 +1,7 @@
 package com.agh.EventarzResilience4j;
 
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -20,6 +22,8 @@ public class EventarzResilience4jApplication {
 
     @GetMapping("/")
     @Retry(name = "Hi Retry", fallbackMethod = "hiFallback")
+    @Bulkhead(name = "Hi Bulkhead", fallbackMethod = "hiFallback")
+    @CircuitBreaker(name = "Hi CircuitBreaker", fallbackMethod = "hiFallback")
     public Mono<String> hi() {
         return WebClient.builder().build().get().uri("http://localhost:8081/")
                 .retrieve().bodyToMono(String.class);
