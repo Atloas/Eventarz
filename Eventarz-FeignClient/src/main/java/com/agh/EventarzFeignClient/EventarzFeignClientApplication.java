@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,18 +14,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class EventarzFeignClientApplication {
 
-	@Autowired
-	private GreetingClient greetingClient;
+    @Autowired
+    private GreetingClient greetingClient;
 
-	public static void main(String[] args) {
-		SpringApplication.run(EventarzFeignClientApplication.class, args);
-	}
+    @Value("${spring.application.name}")
+    private String appName;
+    @Value("${server.port}")
+    private String port;
 
-	@RequestMapping("/get-greeting")
-	public String greeting(Model model) {
-		model.addAttribute("greeting", greetingClient.greeting());
-		model.addAttribute("feignMessage",
-				           "From ${spring.application.name} at ${server.port}.");
-		return "greeting-view";
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(EventarzFeignClientApplication.class, args);
+    }
+
+    @RequestMapping("/get-greeting")
+    public String greeting(Model model) {
+        model.addAttribute("greeting", greetingClient.greeting());
+        model.addAttribute("feignMessage",
+                String.format("Through %s at port %s.", appName, port));
+        return "greeting-view";
+    }
 }
