@@ -14,11 +14,8 @@ public class EventarzConsulServiceApplication {
         SpringApplication.run(EventarzConsulServiceApplication.class, args);
     }
 
-    @Value("${server.port}")
-    private String port;
-
     @GetMapping("/")
     public String home() {
-        return "Hi from " + port + "!";
+        return "Hi from service2!";
     }
 }
