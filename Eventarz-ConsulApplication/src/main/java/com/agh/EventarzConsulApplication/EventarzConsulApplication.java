@@ -12,24 +12,15 @@ import reactor.core.publisher.Mono;
 @RestController
 public class EventarzConsulApplication {
 
-	private final WebClient.Builder loadBalancedWebClientBuilder;
-
-	@Value("${server.port}")
-	private String port;
-
-	public EventarzConsulApplication(WebClient.Builder webClientBuilder) {
-		this.loadBalancedWebClientBuilder = webClientBuilder;
-	}
-
 	public static void main(String[] args) {
 		SpringApplication.run(EventarzConsulApplication.class, args);
 	}
 
 	@RequestMapping("/hi")
 	public Mono<String> hi() {
-		return loadBalancedWebClientBuilder.build().get().uri("http://127.0.0.1:8083/")
+		return WebClient.builder().build().get().uri("http://consul-service.service.consul:8080/")
 				.retrieve().bodyToMono(String.class)
-				.map(greeting -> String.format("%s Through %s.", greeting, port));
+				.map(greeting -> String.format("%s Through application2.", greeting));
 	}
 
 }
