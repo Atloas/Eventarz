@@ -2,7 +2,7 @@ spring:
   application:
     name: spring-cloud-eureka-feign-client
 server:
-  port: 8084
+  port: 8080
 eureka:
   client:
     serviceUrl:
