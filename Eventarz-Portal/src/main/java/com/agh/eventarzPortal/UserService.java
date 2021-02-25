@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.HashSet;
 
 /**
  * This class handles User registration.
@@ -34,10 +35,7 @@ public class UserService {
         if (usernameExists(userForm.getUsername())) {
             throw new UserAlreadyExistsException("There is an account with that username:" + userForm.getUsername());
         }
-        User user = new User(
-                userForm.getUsername(),
-                passwordEncoder.encode(userForm.getPassword()),
-                Arrays.asList("USER"));
+        User user = User.of(userForm.getUsername(), passwordEncoder.encode(userForm.getPassword()), Arrays.asList("USER"), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
         return userRepository.save(user);
     }
 

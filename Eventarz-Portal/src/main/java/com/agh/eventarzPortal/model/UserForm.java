@@ -6,9 +6,6 @@ import lombok.Setter;
 
 import java.util.regex.Pattern;
 
-/**
- * This class is used to hold data about a soon-to-be-created User, given by the frontend. Also contains validation logic.
- */
 public class UserForm {
     @Getter
     @Setter
@@ -23,11 +20,6 @@ public class UserForm {
     public UserForm() {
     }
 
-    /**
-     * Validates the provided data.
-     *
-     * @return Whether the data is valid or not.
-     */
     public boolean validate() {
         //username
         if (username.length() < 5 || Pattern.matches(".*[^a-zA-Z0-9]+.*", username)) {

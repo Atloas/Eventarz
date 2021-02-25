@@ -1,4 +1,4 @@
-package com.agh.eventarzPortal.model;
+package com.agh.EventarzEventService.model;
 
 import lombok.Getter;
 import lombok.Setter;

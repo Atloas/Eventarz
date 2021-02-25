@@ -43,6 +43,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -110,7 +111,7 @@ public class MainController {
     }
 
     /**
-     * Returns a vie wcontaining the registration page.
+     * Returns a view containing the registration page.
      *
      * @param model MVC model.
      * @return registration view.
@@ -323,7 +324,7 @@ public class MainController {
             model.addAttribute("errorDb", true);
             return "createEvent";
         }
-        Event newEvent = new Event(eventForm.getName(), organizer, group, eventForm.getDescription(), eventForm.getMaxParticipants(), eventForm.getEventDate());
+        Event newEvent = Event.of(eventForm.getName(), eventForm.getDescription(), eventForm.getMaxParticipants(), eventForm.getEventDate(), organizer, new HashSet<>(), group);
         if (eventForm.isParticipate()) {
             newEvent.participatedBy(organizer);
         }
@@ -365,7 +366,7 @@ public class MainController {
             model.addAttribute("errorDb", true);
             return "createGroup";
         }
-        Group newGroup = new Group(groupForm.getName(), groupForm.getDescription(), founder);
+        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new HashSet<>(), new HashSet<>(), founder);
         newGroup.joinedBy(founder);
         newGroup = groupRepository.save(newGroup);
         model.addAttribute("infoGroupCreated", true);
