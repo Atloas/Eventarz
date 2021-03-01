@@ -1,7 +1,7 @@
 package com.agh.eventarzPortal.web;
 
 import com.agh.eventarzPortal.EventarzPortalApplication;
-import com.agh.eventarzPortal.feignClients.EventClient;
+import com.agh.eventarzPortal.feignClients.DataClient;
 import com.agh.eventarzPortal.model.Event;
 import com.agh.eventarzPortal.model.Group;
 import com.agh.eventarzPortal.model.User;
@@ -32,7 +32,7 @@ public class AdminController {
     @Autowired
     private GroupRepository groupRepository;
     @Autowired
-    private EventClient eventClient;
+    private DataClient dataClient;
 
     private final static Logger log = LoggerFactory.getLogger(EventarzPortalApplication.class);
 
@@ -91,7 +91,7 @@ public class AdminController {
     public String adminFindEvent(@RequestParam(required = false) String name, Model model) {
         List<Event> foundEvents = null;
         if (name != null) {
-            foundEvents = eventClient.getRegex("(?i).*" + name + ".*");
+            foundEvents = dataClient.getEventsByRegex("(?i).*" + name + ".*");
             model.addAttribute("searched", true);
             model.addAttribute("foundEvents", foundEvents);
         }
@@ -152,7 +152,7 @@ public class AdminController {
     @Transactional
     @RequestMapping(value = "/admin/deleteEvent", method = RequestMethod.POST)
     public String adminDeleteEvent(@RequestParam String uuid, Model model) {
-        eventClient.delete(uuid);
+        dataClient.deleteEvent(uuid);
         model.addAttribute("infoEventDeleted", true);
         return "redirect:/home";
     }

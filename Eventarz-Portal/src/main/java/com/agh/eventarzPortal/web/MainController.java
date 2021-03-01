@@ -18,8 +18,7 @@ package com.agh.eventarzPortal.web;
 import com.agh.eventarzPortal.EventarzPortalApplication;
 import com.agh.eventarzPortal.UserAlreadyExistsException;
 import com.agh.eventarzPortal.UserService;
-import com.agh.eventarzPortal.feignClients.EventClient;
-import com.agh.eventarzPortal.feignClients.GroupClient;
+import com.agh.eventarzPortal.feignClients.DataClient;
 import com.agh.eventarzPortal.model.Event;
 import com.agh.eventarzPortal.model.EventForm;
 import com.agh.eventarzPortal.model.Group;
@@ -28,7 +27,6 @@ import com.agh.eventarzPortal.model.NewEventDTO;
 import com.agh.eventarzPortal.model.NewGroupDTO;
 import com.agh.eventarzPortal.model.User;
 import com.agh.eventarzPortal.model.UserForm;
-import com.agh.eventarzPortal.repositories.GroupRepository;
 import com.agh.eventarzPortal.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +44,8 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 @Controller
 public class MainController {
@@ -57,11 +53,9 @@ public class MainController {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private GroupClient groupClient;
+    private DataClient dataClient;
     @Autowired
     private UserService userService;
-    @Autowired
-    private EventClient eventClient;
 
     private final static Logger log = LoggerFactory.getLogger(EventarzPortalApplication.class);
 
@@ -113,7 +107,7 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/group", method = RequestMethod.GET)
     public String getGroupByUuid(@RequestParam String uuid, Model model, Principal principal) {
-        Group group = groupClient.get(uuid);
+        Group group = dataClient.getGroup(uuid);
         if (group == null) {
             log.error("Requested group not returned from DB!");
             model.addAttribute("errorDb", true);
@@ -132,14 +126,14 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/event", method = RequestMethod.GET)
     public String getEventByUuid(@RequestParam String uuid, Model model, Principal principal) {
-        Event event = eventClient.get(uuid);
+        Event event = dataClient.getEvent(uuid);
         if (event == null) {
             log.error("Requested event not returned from DB!");
             model.addAttribute("errorDb", true);
             return "redirect:myEvents";
         }
         model.addAttribute("event", event);
-        if (eventClient.checkIfAllowedToJoin(uuid, principal.getName())) {
+        if (dataClient.checkIfAllowedToJoinEvent(uuid, principal.getName())) {
             model.addAttribute("allowed", true);
             if (event.containsMember(principal.getName())) {
                 model.addAttribute("joined", true);
@@ -155,13 +149,13 @@ public class MainController {
     @RequestMapping(value = "/myEvents", method = RequestMethod.GET)
     public String getMyEvents(Model model, Principal principal) {
         LocalDateTime now = LocalDateTime.now();
-        List<Event> events = eventClient.getMy(principal.getName());
+        List<Event> events = dataClient.getMyEvents(principal.getName());
         Iterator<Event> eventIterator = events.iterator();
         while (eventIterator.hasNext()) {
             Event event = eventIterator.next();
             Period period = Period.between(now.toLocalDate(), event.getEventDateObject().toLocalDate());
             if (period.getDays() < -1) {
-                eventClient.delete(event.getUuid());
+                dataClient.deleteEvent(event.getUuid());
                 eventIterator.remove();
             }
         }
@@ -178,14 +172,14 @@ public class MainController {
         model.addAttribute("username", principal.getName());
         model.addAttribute("serverTime", now.format(dtf));
 
-        List<Event> events = eventClient.getMy(principal.getName());
+        List<Event> events = dataClient.getMyEvents(principal.getName());
         List<Event> upcomingEvents = new ArrayList<>();
         Iterator<Event> eventIterator = events.iterator();
         while (eventIterator.hasNext()) {
             Event event = eventIterator.next();
             Period period = Period.between(now.toLocalDate(), event.getEventDateObject().toLocalDate());
             if (period.getDays() < -1) {
-                eventClient.delete(event.getUuid());
+                dataClient.deleteEvent(event.getUuid());
                 eventIterator.remove();
                 continue;
             }
@@ -201,7 +195,7 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/myGroups", method = RequestMethod.GET)
     public String getMyGroups(Model model, Principal principal) {
-        List<Group> groups = groupClient.getMy(principal.getName());
+        List<Group> groups = dataClient.getMyGroups(principal.getName());
         model.addAttribute("groups", groups);
         return "myGroups";
     }
@@ -209,7 +203,7 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/createEvent", method = RequestMethod.GET)
     public String showCreateEvent(Model model, Principal principal) {
-        List<Group> myGroups = groupClient.getMy(principal.getName());
+        List<Group> myGroups = dataClient.getMyGroups(principal.getName());
         if (myGroups.size() == 0) {
             model.addAttribute("noGroups", true);
             return "createEvent";
@@ -226,9 +220,9 @@ public class MainController {
             model.addAttribute("errorEventInvalid", true);
             return "createEvent";
         }
-        Group group = groupClient.get(eventForm.getGroupUuid());
+        Group group = dataClient.getGroup(eventForm.getGroupUuid());
         User organizer = userRepository.findByUsername(principal.getName());
-        Event newEvent = eventClient.create(new NewEventDTO(eventForm, group.createSerializableCopy(), organizer.createSerializableCopy()));
+        Event newEvent = dataClient.createEvent(new NewEventDTO(eventForm, group.createSerializableCopy(), organizer.createSerializableCopy()));
         model.addAttribute("infoEventCreated", true);
         return "redirect:event?uuid=" + newEvent.getUuid();
     }
@@ -247,7 +241,7 @@ public class MainController {
             return "createGroup";
         }
         User founder = userRepository.findByUsername(principal.getName());
-        Group newGroup = groupClient.create(new NewGroupDTO(groupForm, founder.createSerializableCopy()));
+        Group newGroup = dataClient.createGroup(new NewGroupDTO(groupForm, founder.createSerializableCopy()));
         model.addAttribute("infoGroupCreated", true);
         return "redirect:group?uuid=" + newGroup.getUuid();
     }
@@ -257,7 +251,7 @@ public class MainController {
     public String findGroup(@RequestParam(required = false) String name, Model model) {
         List<Group> foundGroups = null;
         if (name != null) {
-            foundGroups = groupClient.getRegex("(?i).*" + name + ".*");
+            foundGroups = dataClient.getGroupsByRegex("(?i).*" + name + ".*");
             model.addAttribute("searched", true);
             model.addAttribute("foundGroups", foundGroups);
         }
@@ -267,10 +261,10 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/joinGroup", method = RequestMethod.POST)
     public String joinGroup(@RequestParam String uuid, Model model, Principal principal) {
-        Group group = groupClient.get(uuid);
+        Group group = dataClient.getGroup(uuid);
         User user = userRepository.findByUsername(principal.getName());
         //Workaround due to a Spring Data/Neo4j bug. groupRepository.save(group) wouldn't persist the new relationship.
-        groupClient.join(group.getUuid(), user.createSerializableCopy());
+        dataClient.joinGroup(group.getUuid(), user.createSerializableCopy());
         model.addAttribute("infoGroupJoined", true);
         return "redirect:group?uuid=" + uuid;
     }
@@ -278,9 +272,9 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/joinEvent", method = RequestMethod.POST)
     public String joinEvent(@RequestParam String uuid, Model model, Principal principal) {
-        if (eventClient.checkIfAllowedToJoin(uuid, principal.getName())) {
+        if (dataClient.checkIfAllowedToJoinEvent(uuid, principal.getName())) {
             User user = userRepository.findByUsername(principal.getName());
-            Event event = eventClient.join(uuid, user.createSerializableCopy());
+            Event event = dataClient.joinEvent(uuid, user.createSerializableCopy());
             return "redirect:event?uuid=" + uuid;
         }
         log.error("User not allowed to join requested event!");
@@ -291,9 +285,9 @@ public class MainController {
     @RequestMapping(value = "/leaveGroup", method = RequestMethod.POST)
     public String leaveGroup(@RequestParam String uuid, Model model, Principal principal) {
         User user = userRepository.findByUsername(principal.getName());
-        Group group = groupClient.get(uuid);
+        Group group = dataClient.getGroup(uuid);
         if (group.leftBy(principal.getName())) {
-            groupClient.leave(uuid, user.createSerializableCopy());
+            dataClient.leaveGroup(uuid, user.createSerializableCopy());
             model.addAttribute("infoGroupLeft", true);
         }
         return "redirect:group?uuid=" + uuid;
@@ -303,7 +297,7 @@ public class MainController {
     @RequestMapping(value = "/leaveEvent", method = RequestMethod.POST)
     public String leaveEvent(@RequestParam String uuid, Model model, Principal principal) {
         User user = userRepository.findByUsername(principal.getName());
-        eventClient.leave(uuid, user.createSerializableCopy());
+        dataClient.leaveEvent(uuid, user.createSerializableCopy());
         model.addAttribute("infoEventLeft", true);
         return "redirect:event?uuid=" + uuid;
     }
@@ -311,18 +305,16 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/deleteGroup", method = RequestMethod.POST)
     public String deleteGroup(@RequestParam String uuid, Model model, Principal principal) {
-        Group group = groupClient.get(uuid);
-        if (group.getFounder() != null && group.getFounder().getUsername().compareTo(principal.getName()) == 0) {
-            groupClient.delete(group.getUuid());
-            model.addAttribute("infoGroupDeleted", true);
-        }
+        dataClient.deleteGroup(uuid, principal.getName());
+        //TODO: Error handling
+        model.addAttribute("infoGroupDeleted", true);
         return "redirect:myGroups";
     }
 
     @Transactional
     @RequestMapping(value = "/deleteEvent", method = RequestMethod.POST)
     public String deleteEvent(@RequestParam String uuid, Model model, Principal principal) {
-        eventClient.delete(uuid);
+        dataClient.deleteEvent(uuid);
         return "redirect:myEvents";
     }
 
