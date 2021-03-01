@@ -1,0 +1,9 @@
+spring:
+  application.name: "eventarz-eureka-server"
+  cloud.loadbalancer.ribbon.enabled: false
+server:
+  port: 8761
+eureka:
+  client:
+    registerWithEureka: false
+    fetchRegistry: false

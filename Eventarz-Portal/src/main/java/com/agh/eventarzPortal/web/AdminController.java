@@ -1,10 +1,10 @@
 package com.agh.eventarzPortal.web;
 
 import com.agh.eventarzPortal.EventarzPortalApplication;
+import com.agh.eventarzPortal.feignClients.EventClient;
 import com.agh.eventarzPortal.model.Event;
 import com.agh.eventarzPortal.model.Group;
 import com.agh.eventarzPortal.model.User;
-import com.agh.eventarzPortal.repositories.EventRepository;
 import com.agh.eventarzPortal.repositories.GroupRepository;
 import com.agh.eventarzPortal.repositories.UserRepository;
 import org.slf4j.Logger;
@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -31,7 +32,7 @@ public class AdminController {
     @Autowired
     private GroupRepository groupRepository;
     @Autowired
-    private EventRepository eventRepository;
+    private EventClient eventClient;
 
     private final static Logger log = LoggerFactory.getLogger(EventarzPortalApplication.class);
 
@@ -46,7 +47,7 @@ public class AdminController {
     @Transactional
     @RequestMapping(value = "/admin/user", method = RequestMethod.GET)
     public String adminGetUserByUuid(@RequestParam String uuid, Model model, Principal principal) {
-        User user = userRepository.findByUuid(uuid, 2);
+        User user = userRepository.findByUuid(uuid);
         if (user == null) {
             log.error("Requested user not returned from DB!");
             model.addAttribute("errorDb", true);
@@ -88,9 +89,9 @@ public class AdminController {
     @Transactional
     @RequestMapping(value = "/admin/findEvent", method = RequestMethod.GET)
     public String adminFindEvent(@RequestParam(required = false) String name, Model model) {
-        Set<Event> foundEvents = null;
+        List<Event> foundEvents = null;
         if (name != null) {
-            foundEvents = eventRepository.findByNameRegex("(?i).*" + name + ".*");
+            foundEvents = eventClient.getRegex("(?i).*" + name + ".*");
             model.addAttribute("searched", true);
             model.addAttribute("foundEvents", foundEvents);
         }
@@ -151,13 +152,7 @@ public class AdminController {
     @Transactional
     @RequestMapping(value = "/admin/deleteEvent", method = RequestMethod.POST)
     public String adminDeleteEvent(@RequestParam String uuid, Model model) {
-        Event event = eventRepository.findByUuid(uuid);
-        if (event == null) {
-            log.error("Requested event not returned from DB!");
-            model.addAttribute("errorDb", true);
-            return "redirect:/home";
-        }
-        eventRepository.delete(event);
+        eventClient.delete(uuid);
         model.addAttribute("infoEventDeleted", true);
         return "redirect:/home";
     }

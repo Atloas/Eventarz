@@ -6,7 +6,6 @@ import org.springframework.data.neo4j.annotation.Query;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -25,7 +24,7 @@ public interface UserRepository extends Neo4jRepository<User, Long> {
     /**
      * Searches the database for a User with the given uuid, with adjustable depth.
      *
-     * @param uuid Identifier of the User to find.
+     * @param uuid  Identifier of the User to find.
      * @param depth Search depth to use.
      * @return A User object or null.
      */

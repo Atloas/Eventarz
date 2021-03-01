@@ -22,7 +22,6 @@ import com.agh.EventarzEventService.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,10 +31,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 //TODO: handle event expiration
 
@@ -48,60 +45,82 @@ public class EventController {
     private final static Logger log = LoggerFactory.getLogger(EventarzEventServiceApplication.class);
 
     @Transactional
-    @GetMapping(value = "/event")
+    @GetMapping(value = "/events")
     public Event getEventByUuid(@RequestParam String uuid) {
         Event event = eventRepository.findByUuid(uuid);
+        //TODO: This still modifies event and serializableEvent
+        Event serializableEvent = event.createSerializableCopy();
         //TODO: event not found
-        return event;
+        return serializableEvent;
     }
 
     @Transactional
-    @GetMapping(value = "/myEvents")
+    @GetMapping(value = "/events/my")
     public List<Event> getMyEvents(@RequestParam String username) {
-        Set<Event> events = eventRepository.findMyEvents(username);
-        List<Event> eventsList = new LinkedList<>(events);
-        eventsList.sort(this::compareEventDates);
-        return eventsList;
+        List<Event> events = eventRepository.findMyEvents(username);
+        List<Event> serializableEvents = new ArrayList<>();
+        for (Event event : events) {
+            serializableEvents.add(event.createSerializableCopy());
+        }
+        serializableEvents.sort(this::compareEventDates);
+        return serializableEvents;
     }
 
     @Transactional
-    @PostMapping(value = "/event")
+    @GetMapping(value = "/events/regex")
+    public List<Event> getEventsRegex(@RequestParam String regex) {
+        List<Event> events = eventRepository.findByNameRegex(regex);
+        List<Event> serializableEvents = new ArrayList<>();
+        for (Event event : events) {
+            serializableEvents.add(event.createSerializableCopy());
+        }
+        return serializableEvents;
+    }
+
+    @Transactional
+    @GetMapping(value = "/events/allowedToJoin")
+    public boolean checkIfUserAllowedToJoin(@RequestParam String uuid, @RequestParam String username) {
+        return eventRepository.checkIfAllowedToJoinEvent(uuid, username);
+    }
+
+    @Transactional
+    @PostMapping(value = "/events")
     public Event createEvent(@RequestBody NewEventDTO newEventDTO) {
         //Assumes valid eventForm
         EventForm eventForm = newEventDTO.getEventForm();
-        Event newEvent = Event.of(eventForm.getName(), newEventDTO.getOrganizer(), newEventDTO.getGroup(), eventForm.getDescription(), eventForm.getMaxParticipants(), eventForm.getEventDate());
+        Event newEvent = Event.of(eventForm.getName(), eventForm.getDescription(), eventForm.getMaxParticipants(), eventForm.getEventDate(), newEventDTO.getOrganizer(), new ArrayList<>(), newEventDTO.getGroup());
         if (eventForm.isParticipate()) {
             newEvent.participatedBy(newEventDTO.getOrganizer());
         }
         newEvent = eventRepository.save(newEvent);
-        return newEvent;
+        return newEvent.createSerializableCopy();
     }
 
     @Transactional
-    @PutMapping(value = "/joinEvent")
-    public Event joinEvent(@RequestParam String eventUUID, @RequestBody User user) {
-        Event event = eventRepository.findByUuid(eventUUID);
+    @PutMapping(value = "/events/join")
+    public Event joinEvent(@RequestParam String uuid, @RequestBody User user) {
+        Event event = eventRepository.findByUuid(uuid);
         if (event.participatedBy(user)) {
             //Workaround due to a Spring Data/Neo4j bug. eventRepository.save(event) wouldn't persist the new relationship.
             eventRepository.participatesIn(event.getUuid(), user.getUsername());
         }
-        return event;
+        return event.createSerializableCopy();
     }
 
     @Transactional
-    @PutMapping(value = "/leaveEvent")
-    public Event leaveEvent(@RequestParam String eventUUID, @RequestBody User user) {
-        Event event = eventRepository.findByUuid(eventUUID);
+    @PutMapping(value = "/events/leave")
+    public Event leaveEvent(@RequestParam String uuid, @RequestBody User user) {
+        Event event = eventRepository.findByUuid(uuid);
         if (event.leftBy(user.getUsername())) {
-            eventRepository.leftBy(user.getUsername(), eventUUID);
+            eventRepository.leftBy(user.getUsername(), uuid);
         }
-        return event;
+        return event.createSerializableCopy();
     }
 
     @Transactional
-    @DeleteMapping(value = "/deleteEvent")
-    public void deleteEvent(@RequestParam String eventUUID) {
-        eventRepository.deleteByUuid(eventUUID);
+    @DeleteMapping(value = "/events")
+    public Long deleteEvent(@RequestParam String uuid) {
+        return eventRepository.deleteByUuid(uuid);
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.agh.eventarzPortal.model;
+package com.agh.EventarzGroupService.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

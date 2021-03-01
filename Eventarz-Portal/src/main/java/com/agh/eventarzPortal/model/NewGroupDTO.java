@@ -7,8 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class NewEventDTO {
-    EventForm eventForm;
-    Group group;
-    User organizer;
+public class NewGroupDTO {
+    GroupForm groupForm;
+    User founder;
 }

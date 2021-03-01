@@ -1,4 +1,4 @@
-package com.agh.eventarzPortal.model;
+package com.agh.EventarzGroupService.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;

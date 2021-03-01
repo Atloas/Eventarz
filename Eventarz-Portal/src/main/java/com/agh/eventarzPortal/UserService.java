@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -35,7 +36,7 @@ public class UserService {
         if (usernameExists(userForm.getUsername())) {
             throw new UserAlreadyExistsException("There is an account with that username:" + userForm.getUsername());
         }
-        User user = User.of(userForm.getUsername(), passwordEncoder.encode(userForm.getPassword()), Arrays.asList("USER"), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
+        User user = User.of(userForm.getUsername(), passwordEncoder.encode(userForm.getPassword()), Arrays.asList("USER"), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
         return userRepository.save(user);
     }
 

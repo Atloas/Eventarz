@@ -1,30 +1,31 @@
 package com.agh.EventarzEventService.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.neo4j.ogm.annotation.GeneratedValue;
+import org.neo4j.ogm.annotation.Id;
+import org.neo4j.ogm.annotation.NodeEntity;
+import org.neo4j.ogm.annotation.Relationship;
 import org.springframework.data.annotation.Transient;
-import org.springframework.data.neo4j.core.schema.GeneratedValue;
-import org.springframework.data.neo4j.core.schema.Id;
-import org.springframework.data.neo4j.core.schema.Node;
-import org.springframework.data.neo4j.core.schema.Relationship;
-import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.UUID;
 
 @AllArgsConstructor
-@Node("Event")
+@NoArgsConstructor
+@NodeEntity
 public class Event {
     @Id
     @GeneratedValue
     @Getter
     private Long id;
-    @GeneratedValue(UUIDStringGenerator.class)
     @Getter
     private String uuid;
     @Getter
@@ -40,10 +41,13 @@ public class Event {
     @Setter
     private String eventDate;
     @Transient
+    @JsonIgnore
+    @Getter
     private LocalDateTime eventDateObject;
     @Getter
     private String publishedDate;
     @Transient
+    @JsonIgnore
     @Getter
     private LocalDateTime publishedDateObject;
     @Getter
@@ -53,27 +57,46 @@ public class Event {
 
     @Getter
     @Setter
-    @Relationship(type = "ORGANIZED", direction = Relationship.Direction.INCOMING)
+    @Relationship(type = "ORGANIZED", direction = Relationship.INCOMING)
     public User organizer;
     @Getter
     @Setter
-    @Relationship(type = "PARTICIPATES_IN", direction = Relationship.Direction.INCOMING)
-    public Set<User> participants;
+    @Relationship(type = "PARTICIPATES_IN", direction = Relationship.INCOMING)
+    public List<User> participants;
     @Getter
     @Setter
-    @Relationship(type = "PUBLISHED_IN", direction = Relationship.Direction.OUTGOING)
+    @Relationship(type = "PUBLISHED_IN", direction = Relationship.OUTGOING)
     public Group group;
 
-    public static Event of(String name, String description, int maxParticipants, String eventDate, User organizer, Set<User> participants, Group group) {
+    public Event(Long id, String uuid, String name, String description, int maxParticipants, String eventDate, String publishedDate, User organizer, List<User> participants, Group group) {
+        this.id = id;
+        this.uuid = uuid;
+        this.name = name;
+        this.description = description;
+        this.maxParticipants = maxParticipants;
+        this.eventDate = eventDate;
+        this.publishedDate = publishedDate;
+        this.organizer = organizer;
+        this.participants = participants;
+        this.group = group;
+    }
+
+//    public Event(Event that) {
+//        this(that.id, that.uuid, that.name, that.description, that.maxParticipants, that.eventDate, that.eventDateObject,
+//                that.publishedDate, that.publishedDateObject, that.expired, that.organizer, that.participants, that.group);
+//    }
+
+    public static Event of(String name, String description, int maxParticipants, String eventDate, User organizer, List<User> participants, Group group) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-        String createdDate = LocalDateTime.now().format(dtf);
-        return new Event(null, null, name, description, maxParticipants, eventDate, null, createdDate, null, false, organizer, participants, group);
+        String publishedDate = LocalDateTime.now().format(dtf);
+        String uuid = UUID.randomUUID().toString();
+        return new Event(null, uuid, name, description, maxParticipants, eventDate, publishedDate, organizer, participants, group);
     }
 
     //TODO: Exception over return value for failure state?
     public boolean participatedBy(User user) {
         if (participants == null) {
-            participants = new HashSet<>();
+            participants = new ArrayList<>();
             participants.add(user);
             return true;
         } else if (participants.size() < maxParticipants) {
@@ -126,10 +149,48 @@ public class Event {
     }
 
     public Event withId(Long id) {
-        return new Event(id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, this.eventDateObject, this.publishedDate, this.publishedDateObject, this.expired, this.organizer, this.participants, this.group);
+        return new Event(id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, this.publishedDate, this.organizer, this.participants, this.group);
+    }
+
+    //    //TODO: Would be better if this was handled automatically at serialization, like @JsonIdentityInfo
+    public Event createSerializableCopy() {
+        List<User> participants = new ArrayList<>();
+        if (this.participants != null) {
+            for (User user : this.getParticipants()) {
+                participants.add(user.createStrippedCopy());
+            }
+        }
+        Event event = new Event(this.id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, null,
+                this.publishedDate, null, this.expired, this.organizer.createStrippedCopy(), participants, this.group.createStrippedCopy());
+//        event.prepareForSerialization();
+        return event;
+    }
+
+    public Event createStrippedCopy() {
+        Event copy = new Event(this.id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, null,
+                this.publishedDate, null, this.expired, null, null, null);
+        return copy;
+    }
+
+    //    Strips data references at depth 1 to avoid circular references
+    void prepareForSerialization() {
+        this.organizer.stripReferences();
+        this.group.stripReferences();
+        if (this.participants != null) {
+            for (User user : this.participants) {
+                user.stripReferences();
+            }
+        }
+    }
+
+    //Strips database object references stemming from this object
+    void stripReferences() {
+        this.organizer = null;
+        this.group = null;
+        this.participants = null;
     }
 
     public String toString() {
-        return "Event " + name + "\nParticipants: " + participants.stream().map(User::getUsername).collect(Collectors.toList());
+        return "Event " + name;
     }
 }
