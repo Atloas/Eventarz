@@ -1,161 +1,108 @@
 package com.agh.eventarzPortal.model;
 
+import com.agh.eventarzPortal.model.serializers.UserSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Id;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
-/**
- * Objects of this class represent User nodes in the Neo4j database.
- */
-@NodeEntity
+@AllArgsConstructor
+@NoArgsConstructor
+@NodeEntity("User")
+@JsonSerialize(using = UserSerializer.class)
 public class User {
-    /**
-     * Neo4j's internal object id, not to be used for actual object identification.
-     */
     @Id
     @GeneratedValue
     @Getter
     private Long id;
-    /**
-     * Uuid serves as a primary key for database objects, since id can't be used for this purpose.
-     * Generated on object creation.
-     */
     @Getter
     private String uuid;
     @Getter
     @Setter
-    @Id
     private String username;
     @Getter
     @Setter
-    private String passwordHash;
-    @Getter
-    @Setter
     private String registerDate;
-    /**
-     * A LocalDateTime object containing the same data as the registerDate field.
-     * Created the first time {@link #getRegisterDateObject} is called.
-     */
-    @Setter
-    private LocalDateTime registerDateObject;
-    /**
-     * Contains the security related roles of the User, either USER or ADMIN.
-     */
+
+
     @Getter
     @Setter
-    private List<String> roles;
-
-
+    @Relationship(type = "DETAILS_OF", direction = Relationship.INCOMING)
+    public SecurityDetails securityDetails;
     @Getter
     @Setter
     @Relationship(type = "PARTICIPATES_IN", direction = Relationship.OUTGOING)
-    public Set<Event> events;
+    public List<Event> events;
     @Getter
     @Setter
     @Relationship(type = "ORGANIZED", direction = Relationship.OUTGOING)
-    public Set<Event> organizedEvents;
+    public List<Event> organizedEvents;
     @Getter
     @Setter
     @Relationship(type = "BELONGS_TO", direction = Relationship.OUTGOING)
-    public Set<Group> groups;
+    public List<Group> groups;
     @Getter
     @Setter
     @Relationship(type = "FOUNDED", direction = Relationship.OUTGOING)
-    public Set<Group> foundedGroups;
+    public List<Group> foundedGroups;
 
-    /**
-     * Parameterless constructor required by Spring Data Neo4j.
-     */
-    private User() {
+    public User(User that) {
+        this(that.id, that.uuid, that.username, that.registerDate, that.securityDetails, that.events, that.organizedEvents,
+                that.groups, that.foundedGroups);
     }
 
-    /**
-     * This is the constructor to be used when creating a brand new User.
-     * Apart from setting field values to given parameters, also generates the uuid and registration date.
-     *
-     * @param username     Name of the user.
-     * @param passwordHash Hashed password.
-     * @param roles        Security roles.
-     */
-    public User(String username, String passwordHash, List<String> roles) {
-        this.uuid = UUID.randomUUID().toString();
-        this.username = username;
-        this.passwordHash = passwordHash;
-        this.roles = roles;
+    public static User of(String username, SecurityDetails securityDetails, List<Event> events, List<Event> organizedEvents, List<Group> groups, List<Group> foundedGroups) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-        LocalDateTime now = LocalDateTime.now();
-        this.registerDate = now.format(dtf);
+        String registerDate = LocalDate.now().format(dtf);
+        String uuid = UUID.randomUUID().toString();
+        return new User(null, uuid, username, registerDate, securityDetails, events, organizedEvents, groups, foundedGroups);
     }
 
-    /**
-     * Returns the User's registerDate in the form of a LocalDateTime object, creates it if not already present.
-     *
-     * @return LocalDateTime object pointing to registerDate.
-     */
-    public LocalDateTime getRegisterDateObject() {
-        if (registerDateObject == null) {
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-            registerDateObject = LocalDateTime.parse(registerDate, dtf);
-        }
-        return registerDateObject;
-    }
-
-    /**
-     * Adds the given Event to the User's events list.
-     *
-     * @param event Event to be added.
-     */
     public void participatesIn(Event event) {
         if (events == null) {
-            events = new HashSet<>();
+            events = new ArrayList<>();
         }
         events.add(event);
     }
 
-    /**
-     * Adds the given Event to the User's organizedEvents list.
-     *
-     * @param event Event to be added.
-     */
     public void organized(Event event) {
         if (organizedEvents == null) {
-            organizedEvents = new HashSet<>();
+            organizedEvents = new ArrayList<>();
         }
         organizedEvents.add(event);
     }
 
-    /**
-     * Adds the given Group to the User's groups list.
-     *
-     * @param group Group to be added.
-     */
     public void belongsTo(Group group) {
         if (groups == null) {
-            groups = new HashSet<>();
+            groups = new ArrayList<>();
         }
         groups.add(group);
     }
 
-    /**
-     * Adds the given Group to the User's foundedGroups list.
-     *
-     * @param group Group to be added.
-     */
     public void founded(Group group) {
         if (foundedGroups == null) {
-            foundedGroups = new HashSet<>();
+            foundedGroups = new ArrayList<>();
         }
         foundedGroups.add(group);
+    }
+
+    public User withId(Long id) {
+        return new User(id, this.uuid, this.username, this.registerDate, this.securityDetails, this.events, this.organizedEvents, this.groups, this.foundedGroups);
+    }
+
+    public User createStrippedCopy() {
+        return new User(this.id, this.uuid, this.username, this.registerDate, this.securityDetails, null, null, null, null);
     }
 
     public String toString() {

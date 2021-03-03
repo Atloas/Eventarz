@@ -1,6 +1,10 @@
 package com.agh.eventarzPortal.model;
 
+import com.agh.eventarzPortal.model.serializers.GroupSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Id;
@@ -9,28 +13,20 @@ import org.neo4j.ogm.annotation.Relationship;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-/**
- * Objects of this class represent Group nodes in the Neo4j database.
- */
-@NodeEntity
+@AllArgsConstructor
+@NoArgsConstructor
+@NodeEntity("Group")
+@JsonSerialize(using = GroupSerializer.class)
 public class Group {
-    /**
-     * Neo4j's internal object id, not to be used for actual object identification.
-     */
     @Id
     @GeneratedValue
     @Getter
     private Long id;
-    /**
-     * Uuid serves as a primary key for database objects, since id can't be used for this purpose.
-     * Generated on object creation.
-     */
     @Getter
     private String uuid;
     @Getter
@@ -46,58 +42,34 @@ public class Group {
     @Getter
     @Setter
     @Relationship(type = "BELONGS_TO", direction = Relationship.INCOMING)
-    public Set<User> members;
+    public List<User> members;
     @Getter
     @Setter
     @Relationship(type = "PUBLISHED_IN", direction = Relationship.INCOMING)
-    public Set<Event> events;
+    public List<Event> events;
     @Getter
     @Setter
     @Relationship(type = "FOUNDED", direction = Relationship.INCOMING)
     public User founder;
 
-    /**
-     * Parameterless constructor required by Spring Data Neo4j.
-     */
-    private Group() {
+    public Group(Group that) {
+        this(that.id, that.uuid, that.name, that.description, that.createdDate, that.members, that.events, that.founder);
     }
 
-    /**
-     * This is the constructor to be used when creating a brand new Event.
-     * Apart from setting field values to given parameters, also generates the uuid and founding date.
-     *
-     * @param name        Name of the group.
-     * @param description Description of the group.
-     * @param founder     User founding the group.
-     */
-    public Group(String name, String description, User founder) {
-        this.uuid = UUID.randomUUID().toString();
-        this.name = name;
-        this.description = description;
-        this.founder = founder;
+    public static Group of(String name, String description, List<User> members, List<Event> events, User founder) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-        LocalDateTime now = LocalDateTime.now();
-        this.createdDate = now.format(dtf);
+        String createdDate = LocalDateTime.now().format(dtf);
+        String uuid = UUID.randomUUID().toString();
+        return new Group(null, uuid, name, description, createdDate, members, events, founder);
     }
 
-    /**
-     * Adds the specified user to the Group's members list. Creates the list if it's not present.
-     *
-     * @param user User to be added.
-     */
     public void joinedBy(User user) {
         if (members == null) {
-            members = new HashSet<>();
+            members = new ArrayList<>();
         }
         members.add(user);
     }
 
-    /**
-     * Attempts to remove the specified user from the members list.
-     *
-     * @param username User to be removed.
-     * @return Whether the user was removed.
-     */
     public boolean leftBy(String username) {
         if (members != null) {
             Iterator<User> iterator = members.iterator();
@@ -112,12 +84,6 @@ public class Group {
         return false;
     }
 
-    /**
-     * Checks if the members list contains the specified user.
-     *
-     * @param username User to check for.
-     * @return Whether the user is contained within members.
-     */
     public boolean containsMember(String username) {
         if (members != null) {
             for (User member : members) {
@@ -129,7 +95,15 @@ public class Group {
         return false;
     }
 
+    public Group withId(Long id) {
+        return new Group(id, this.uuid, this.name, this.description, this.createdDate, this.members, this.events, this.founder);
+    }
+
+    public Group createStrippedCopy() {
+        return new Group(this.id, this.uuid, this.name, this.description, this.createdDate, null, null, null);
+    }
+
     public String toString() {
-        return "Group " + name + "\nMembers: " + members.stream().map(User::getUsername).collect(Collectors.toList());
+        return "Group " + name;
     }
 }

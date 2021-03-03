@@ -1,7 +1,7 @@
 package com.agh.eventarzPortal;
 
+import com.agh.eventarzPortal.feignClients.DataClient;
 import com.agh.eventarzPortal.model.User;
-import com.agh.eventarzPortal.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,27 +21,20 @@ import java.util.List;
 public class EventarzUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private UserRepository userRepository;
+    private DataClient dataClient;
 
-    /**
-     * Queries the database for a User with the specified username.
-     *
-     * @param username Username to check.
-     * @return An Spring UserDetails object with the Users data.
-     * @throws UsernameNotFoundException When the username doesn't match any User.
-     */
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username);
+        User user = dataClient.getUser(username);
         if (user == null) {
             throw new UsernameNotFoundException("No user found for username " + username);
         }
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
-                user.getPasswordHash(), true, true,
+                user.getSecurityDetails().getPasswordHash(), true, true,
                 true, true,
-                getAuthorities(user.getRoles())
+                getAuthorities(user.getSecurityDetails().getRoles())
         );
     }
 
