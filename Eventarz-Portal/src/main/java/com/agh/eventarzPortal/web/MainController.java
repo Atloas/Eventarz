@@ -23,11 +23,8 @@ import com.agh.eventarzPortal.model.Event;
 import com.agh.eventarzPortal.model.EventForm;
 import com.agh.eventarzPortal.model.Group;
 import com.agh.eventarzPortal.model.GroupForm;
-import com.agh.eventarzPortal.model.NewEventDTO;
-import com.agh.eventarzPortal.model.NewGroupDTO;
 import com.agh.eventarzPortal.model.User;
 import com.agh.eventarzPortal.model.UserForm;
-import com.agh.eventarzPortal.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,8 +48,6 @@ import java.util.List;
 public class MainController {
 
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
     private DataClient dataClient;
     @Autowired
     private UserService userService;
@@ -75,6 +70,7 @@ public class MainController {
         return "login";
     }
 
+
     @RequestMapping("/login-logout")
     public String logout(Model model) {
         model.addAttribute("infoLogout", true);
@@ -95,7 +91,7 @@ public class MainController {
             return "registration";
         }
         try {
-            User registered = userService.registerNewUserAccount(userForm);
+            User user = userService.registerNewUserAccount(userForm);
         } catch (UserAlreadyExistsException uaeEx) {
             model.addAttribute("errorUserExists", true);
             return "registration";
@@ -216,15 +212,20 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/createEvent", method = RequestMethod.POST)
     public String processCreateEvent(@ModelAttribute EventForm eventForm, Model model, Principal principal) {
+        eventForm.setOrganizerUsername(principal.getName());
         if (!eventForm.validate()) {
             model.addAttribute("errorEventInvalid", true);
             return "createEvent";
         }
-        Group group = dataClient.getGroup(eventForm.getGroupUuid());
-        User organizer = userRepository.findByUsername(principal.getName());
-        Event newEvent = dataClient.createEvent(new NewEventDTO(eventForm, group.createSerializableCopy(), organizer.createSerializableCopy()));
-        model.addAttribute("infoEventCreated", true);
-        return "redirect:event?uuid=" + newEvent.getUuid();
+        boolean allowed = dataClient.checkIfAllowedToPublishEvent(eventForm.getGroupUuid(), principal.getName());
+        if (allowed) {
+            Event newEvent = dataClient.createEvent(eventForm);
+            model.addAttribute("infoEventCreated", true);
+            return "redirect:event?uuid=" + newEvent.getUuid();
+        } else {
+            //TODO: Error message
+            return "redirect:myEvents";
+        }
     }
 
     @RequestMapping(value = "/createGroup", method = RequestMethod.GET)
@@ -236,14 +237,14 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/createGroup", method = RequestMethod.POST)
     public String processCreateGroup(@ModelAttribute GroupForm groupForm, Model model, Principal principal) {
+        groupForm.setFounderUsername(principal.getName());
         if (!groupForm.validate()) {
             model.addAttribute("errorGroupInvalid", true);
             return "createGroup";
         }
-        User founder = userRepository.findByUsername(principal.getName());
-        Group newGroup = dataClient.createGroup(new NewGroupDTO(groupForm, founder.createSerializableCopy()));
+        Group group = dataClient.createGroup(groupForm);
         model.addAttribute("infoGroupCreated", true);
-        return "redirect:group?uuid=" + newGroup.getUuid();
+        return "redirect:group?uuid=" + group.getUuid();
     }
 
     @Transactional
@@ -261,43 +262,34 @@ public class MainController {
     @Transactional
     @RequestMapping(value = "/joinGroup", method = RequestMethod.POST)
     public String joinGroup(@RequestParam String uuid, Model model, Principal principal) {
-        Group group = dataClient.getGroup(uuid);
-        User user = userRepository.findByUsername(principal.getName());
-        //Workaround due to a Spring Data/Neo4j bug. groupRepository.save(group) wouldn't persist the new relationship.
-        dataClient.joinGroup(group.getUuid(), user.createSerializableCopy());
-        model.addAttribute("infoGroupJoined", true);
+        dataClient.joinGroup(uuid, principal.getName());
         return "redirect:group?uuid=" + uuid;
     }
 
     @Transactional
     @RequestMapping(value = "/joinEvent", method = RequestMethod.POST)
     public String joinEvent(@RequestParam String uuid, Model model, Principal principal) {
-        if (dataClient.checkIfAllowedToJoinEvent(uuid, principal.getName())) {
-            User user = userRepository.findByUsername(principal.getName());
-            Event event = dataClient.joinEvent(uuid, user.createSerializableCopy());
+        boolean allowed = dataClient.checkIfAllowedToJoinEvent(uuid, principal.getName());
+        if (allowed) {
+            dataClient.joinEvent(uuid, principal.getName());
             return "redirect:event?uuid=" + uuid;
+        } else {
+            //TODO: Error message?
+            return "redirect:myEvents";
         }
-        log.error("User not allowed to join requested event!");
-        return "redirect:event?uuid=" + uuid;
     }
 
     @Transactional
     @RequestMapping(value = "/leaveGroup", method = RequestMethod.POST)
     public String leaveGroup(@RequestParam String uuid, Model model, Principal principal) {
-        User user = userRepository.findByUsername(principal.getName());
-        Group group = dataClient.getGroup(uuid);
-        if (group.leftBy(principal.getName())) {
-            dataClient.leaveGroup(uuid, user.createSerializableCopy());
-            model.addAttribute("infoGroupLeft", true);
-        }
+        dataClient.leaveGroup(uuid, principal.getName());
         return "redirect:group?uuid=" + uuid;
     }
 
     @Transactional
     @RequestMapping(value = "/leaveEvent", method = RequestMethod.POST)
     public String leaveEvent(@RequestParam String uuid, Model model, Principal principal) {
-        User user = userRepository.findByUsername(principal.getName());
-        dataClient.leaveEvent(uuid, user.createSerializableCopy());
+        dataClient.leaveEvent(uuid, principal.getName());
         model.addAttribute("infoEventLeft", true);
         return "redirect:event?uuid=" + uuid;
     }

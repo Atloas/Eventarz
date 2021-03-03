@@ -12,6 +12,9 @@ public class GroupForm {
     @Getter
     @Setter
     private String description;
+    @Getter
+    @Setter
+    private String founderUsername;
 
     public GroupForm() {
     }

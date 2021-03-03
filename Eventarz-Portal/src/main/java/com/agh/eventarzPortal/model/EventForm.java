@@ -25,6 +25,9 @@ public class EventForm {
     private boolean participate;
     @Getter
     @Setter
+    private String organizerUsername;
+    @Getter
+    @Setter
     private String groupUuid;
 
     public EventForm() {

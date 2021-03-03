@@ -1,5 +1,7 @@
 package com.agh.eventarzPortal.model;
 
+import com.agh.eventarzPortal.model.serializers.UserSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +19,8 @@ import java.util.UUID;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@NodeEntity
+@NodeEntity("User")
+@JsonSerialize(using = UserSerializer.class)
 public class User {
     @Id
     @GeneratedValue
@@ -30,15 +33,13 @@ public class User {
     private String username;
     @Getter
     @Setter
-    private String passwordHash;
-    @Getter
-    @Setter
     private String registerDate;
+
+
     @Getter
     @Setter
-    private List<String> roles;
-
-
+    @Relationship(type = "DETAILS_OF", direction = Relationship.INCOMING)
+    public SecurityDetails securityDetails;
     @Getter
     @Setter
     @Relationship(type = "PARTICIPATES_IN", direction = Relationship.OUTGOING)
@@ -57,15 +58,15 @@ public class User {
     public List<Group> foundedGroups;
 
     public User(User that) {
-        this(that.id, that.uuid, that.username, that.passwordHash, that.registerDate, that.roles, that.events, that.organizedEvents,
+        this(that.id, that.uuid, that.username, that.registerDate, that.securityDetails, that.events, that.organizedEvents,
                 that.groups, that.foundedGroups);
     }
 
-    public static User of(String username, String passwordHash, List<String> roles, List<Event> events, List<Event> organizedEvents, List<Group> groups, List<Group> foundedGroups) {
+    public static User of(String username, SecurityDetails securityDetails, List<Event> events, List<Event> organizedEvents, List<Group> groups, List<Group> foundedGroups) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         String registerDate = LocalDate.now().format(dtf);
         String uuid = UUID.randomUUID().toString();
-        return new User(null, uuid, username, passwordHash, registerDate, roles, events, organizedEvents, groups, foundedGroups);
+        return new User(null, uuid, username, registerDate, securityDetails, events, organizedEvents, groups, foundedGroups);
     }
 
     public void participatesIn(Event event) {
@@ -97,71 +98,11 @@ public class User {
     }
 
     public User withId(Long id) {
-        return new User(id, this.uuid, this.username, this.passwordHash, this.registerDate, this.roles, this.events, this.organizedEvents, this.groups, this.foundedGroups);
-    }
-
-    public User createSerializableCopy() {
-        List<Event> events = new ArrayList<>();
-        if (this.events != null) {
-            for (Event event : this.getEvents()) {
-                events.add(event.createStrippedCopy());
-            }
-        }
-        List<Event> organizedEvents = new ArrayList<>();
-        if (this.organizedEvents != null) {
-            for (Event event : this.getOrganizedEvents()) {
-                organizedEvents.add(event.createStrippedCopy());
-            }
-        }
-        List<Group> groups = new ArrayList<>();
-        if (this.groups != null) {
-            for (Group group : this.getGroups()) {
-                groups.add(group.createStrippedCopy());
-            }
-        }
-        List<Group> foundedGroups = new ArrayList<>();
-        if (this.foundedGroups != null) {
-            for (Group group : this.getGroups()) {
-                foundedGroups.add(group.createStrippedCopy());
-            }
-        }
-        return new User(this.id, this.uuid, this.username, this.passwordHash, this.registerDate, this.roles, events, organizedEvents, groups, foundedGroups);
-    }
-
-    //Strips data references at depth 1 to avoid circular references
-    public void prepareForSerialization() {
-        if (this.events != null) {
-            for (Event event : this.events) {
-                event.stripReferences();
-            }
-        }
-        if (this.organizedEvents != null) {
-            for (Event organizedEvent : this.organizedEvents) {
-                organizedEvent.stripReferences();
-            }
-        }
-        if (this.groups != null) {
-            for (Group group : this.groups) {
-                group.stripReferences();
-            }
-        }
-        if (this.foundedGroups != null) {
-            for (Group foundedGroup : this.foundedGroups) {
-                foundedGroup.stripReferences();
-            }
-        }
+        return new User(id, this.uuid, this.username, this.registerDate, this.securityDetails, this.events, this.organizedEvents, this.groups, this.foundedGroups);
     }
 
     public User createStrippedCopy() {
-        return new User(this.id, this.uuid, this.username, this.passwordHash, this.registerDate, this.roles, null, null, null, null);
-    }
-
-    //Strips database object references stemming from this object
-    void stripReferences() {
-        this.groups = null;
-        this.foundedGroups = null;
-        this.events = null;
-        this.organizedEvents = null;
+        return new User(this.id, this.uuid, this.username, this.registerDate, this.securityDetails, null, null, null, null);
     }
 
     public String toString() {

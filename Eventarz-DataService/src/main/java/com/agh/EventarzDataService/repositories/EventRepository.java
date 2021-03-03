@@ -1,4 +1,4 @@
-package com.agh.EventarzDataService;
+package com.agh.EventarzDataService.repositories;
 
 import com.agh.EventarzDataService.model.Event;
 import org.springframework.data.neo4j.annotation.Query;
@@ -27,6 +27,9 @@ public interface EventRepository extends Neo4jRepository<Event, Long> {
 
     @Query("RETURN EXISTS((:User {username: $1})-[:BELONGS_TO]->(:Group)<-[:PUBLISHED_IN]-(:Event {uuid: $0}))")
     boolean checkIfAllowedToJoinEvent(String eventUuid, String username);
+
+    @Query("RETURN EXISTS((:User {username: $1})-[:BELONGS_TO]->(:Group {uuid: $0}))")
+    boolean checkIfAllowedToPublishEvent(String groupUuid, String username);
 
     @Query("MATCH (:User {username: $0})-[r:PARTICIPATES_IN]->(:Event {uuid: $1}) DELETE r")
     void leftBy(String username, String eventUuid);

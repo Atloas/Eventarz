@@ -1,6 +1,8 @@
 package com.agh.eventarzPortal.model;
 
+import com.agh.eventarzPortal.model.serializers.EventSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +22,8 @@ import java.util.UUID;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@NodeEntity
+@NodeEntity("Event")
+@JsonSerialize(using = EventSerializer.class)
 public class Event {
     @Id
     @GeneratedValue
@@ -152,42 +155,10 @@ public class Event {
         return new Event(id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, this.publishedDate, this.organizer, this.participants, this.group);
     }
 
-    //    //TODO: Would be better if this was handled automatically at serialization, like @JsonIdentityInfo
-    public Event createSerializableCopy() {
-        List<User> participants = new ArrayList<>();
-        if (this.participants != null) {
-            for (User user : this.getParticipants()) {
-                participants.add(user.createStrippedCopy());
-            }
-        }
-        Event event = new Event(this.id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, null,
-                this.publishedDate, null, this.expired, this.organizer.createStrippedCopy(), participants, this.group.createStrippedCopy());
-//        event.prepareForSerialization();
-        return event;
-    }
-
     public Event createStrippedCopy() {
         Event copy = new Event(this.id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, null,
                 this.publishedDate, null, this.expired, null, null, null);
         return copy;
-    }
-
-    //    Strips data references at depth 1 to avoid circular references
-    void prepareForSerialization() {
-        this.organizer.stripReferences();
-        this.group.stripReferences();
-        if (this.participants != null) {
-            for (User user : this.participants) {
-                user.stripReferences();
-            }
-        }
-    }
-
-    //Strips database object references stemming from this object
-    void stripReferences() {
-        this.organizer = null;
-        this.group = null;
-        this.participants = null;
     }
 
     public String toString() {

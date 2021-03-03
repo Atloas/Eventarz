@@ -1,5 +1,7 @@
 package com.agh.EventarzDataService.model;
 
+import com.agh.EventarzDataService.model.serializers.GroupSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +20,8 @@ import java.util.UUID;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@NodeEntity
+@NodeEntity("Group")
+@JsonSerialize(using = GroupSerializer.class)
 public class Group {
     @Id
     @GeneratedValue
@@ -96,46 +99,8 @@ public class Group {
         return new Group(id, this.uuid, this.name, this.description, this.createdDate, this.members, this.events, this.founder);
     }
 
-    public Group createSerializableCopy() {
-        List<User> members = new ArrayList<>();
-        if (this.members != null) {
-            for (User member : this.members) {
-                members.add(member.createStrippedCopy());
-            }
-        }
-        List<Event> events = new ArrayList<>();
-        if (this.events != null) {
-            for (Event event : this.events) {
-                events.add(event.createStrippedCopy());
-            }
-        }
-        return new Group(this.id, this.uuid, this.name, this.description, this.createdDate, members, events, this.founder.createStrippedCopy());
-    }
-
     public Group createStrippedCopy() {
         return new Group(this.id, this.uuid, this.name, this.description, this.createdDate, null, null, null);
-    }
-
-    //Strips data references at depth 1 to avoid circular references
-    void prepareForSerialization() {
-        this.stripReferences();
-        if (this.members != null) {
-            for (User user : this.members) {
-                user.stripReferences();
-            }
-        }
-        if (this.events != null) {
-            for (Event event : this.events) {
-                event.stripReferences();
-            }
-        }
-    }
-
-    //Strips database object references stemming from this object
-    void stripReferences() {
-        this.founder = null;
-        this.members = null;
-        this.events = null;
     }
 
     public String toString() {

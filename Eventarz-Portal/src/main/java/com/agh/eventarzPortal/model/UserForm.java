@@ -4,6 +4,7 @@ package com.agh.eventarzPortal.model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class UserForm {
@@ -16,6 +17,12 @@ public class UserForm {
     @Getter
     @Setter
     private String repeatPassword;
+    @Getter
+    @Setter
+    private String passwordHash;
+    @Getter
+    @Setter
+    private List<String> roles;
 
     public UserForm() {
     }

@@ -1,4 +1,4 @@
-package com.agh.EventarzDataService;
+package com.agh.EventarzDataService.repositories;
 
 import com.agh.EventarzDataService.model.Group;
 import org.springframework.data.neo4j.annotation.Depth;

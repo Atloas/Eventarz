@@ -17,8 +17,10 @@ package com.agh.EventarzDataService;
 
 import com.agh.EventarzDataService.model.Group;
 import com.agh.EventarzDataService.model.GroupForm;
-import com.agh.EventarzDataService.model.NewGroupDTO;
 import com.agh.EventarzDataService.model.User;
+import com.agh.EventarzDataService.repositories.EventRepository;
+import com.agh.EventarzDataService.repositories.GroupRepository;
+import com.agh.EventarzDataService.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,10 @@ import java.util.List;
 public class GroupController {
 
     @Autowired
+    private EventRepository eventRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
     private GroupRepository groupRepository;
 
     private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
@@ -45,62 +51,60 @@ public class GroupController {
     @Transactional
     @GetMapping(value = "/groups")
     public Group getGroupByUuid(@RequestParam String uuid) {
-        Group event = groupRepository.findByUuid(uuid);
-        //TODO: This still modifies event and serializableGroup
-        Group serializableGroup = event.createSerializableCopy();
+        Group group = groupRepository.findByUuid(uuid);
         //TODO: group not found
-        return serializableGroup;
+        return group;
     }
 
     @Transactional
     @GetMapping(value = "/groups/my")
     public List<Group> getMyGroups(@RequestParam String username) {
         List<Group> groups = groupRepository.findMyGroups(username);
-        List<Group> serializableGroups = new ArrayList<>();
-        for (Group event : groups) {
-            serializableGroups.add(event.createSerializableCopy());
-        }
-        return serializableGroups;
+        return groups;
     }
 
     @Transactional
     @GetMapping(value = "/groups/regex")
     public List<Group> getGroupsRegex(@RequestParam String regex) {
         List<Group> groups = groupRepository.findByNameRegex(regex);
-        List<Group> serializableGroups = new ArrayList<>();
-        for (Group group : groups) {
-            serializableGroups.add(group.createSerializableCopy());
-        }
-        return serializableGroups;
+        return groups;
     }
 
     @Transactional
     @PostMapping(value = "/groups")
-    public Group createGroup(@RequestBody NewGroupDTO newGroupDTO) {
-        //Assumes valid eventForm
-        GroupForm groupForm = newGroupDTO.getGroupForm();
-        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new ArrayList<>(), new ArrayList<>(), newGroupDTO.getFounder());
+    public Group createGroup(@RequestBody GroupForm groupForm) {
+        //Assumes valid groupForm
+        User founder = userRepository.findByUsername(groupForm.getFounderUsername());
+        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new ArrayList<>(), new ArrayList<>(), founder);
         newGroup = groupRepository.save(newGroup);
-        groupRepository.belongsTo(newGroup.getUuid(), newGroupDTO.getFounder().getUsername());
-        return newGroup.createSerializableCopy();
+        //TODO: Is this necessary?
+        groupRepository.belongsTo(newGroup.getUuid(), founder.getUsername());
+        return newGroup;
     }
 
     @Transactional
     @PutMapping(value = "/groups/join")
-    public Group joinGroup(@RequestParam String uuid, @RequestBody User user) {
+    public Group joinGroup(@RequestParam String uuid, @RequestParam String username) {
+        User user = userRepository.findByUsername(username);
         Group group = groupRepository.findByUuid(uuid);
         group.joinedBy(user);
-        groupRepository.belongsTo(group.getUuid(), user.getUsername());
-        return group.createSerializableCopy();
+        //TODO: Is this necessary?
+        groupRepository.belongsTo(uuid, username);
+        return group;
     }
 
     @Transactional
     @PutMapping(value = "/groups/leave")
-    public Group leaveGroup(@RequestParam String uuid, @RequestBody User user) {
+    public Group leaveGroup(@RequestParam String uuid, @RequestParam String username) {
+        User user = userRepository.findByUsername(username);
         Group group = groupRepository.findByUuid(uuid);
         group.leftBy(user.getUsername());
+        //TODO: Is this necessary?
         groupRepository.leftBy(user.getUsername(), uuid);
-        return group.createSerializableCopy();
+        if (group.getMembers().size() == 0) {
+            groupRepository.deleteByUuid(group.getUuid());
+        }
+        return group;
     }
 
     @Transactional
@@ -111,5 +115,11 @@ public class GroupController {
         }
         //TODO: Error handling
         return (long) -1;
+    }
+
+    @Transactional
+    @DeleteMapping(value = "/admin/groups")
+    public Long adminDeleteGroup(@RequestParam String uuid) {
+        return groupRepository.deleteByUuid(uuid);
     }
 }
