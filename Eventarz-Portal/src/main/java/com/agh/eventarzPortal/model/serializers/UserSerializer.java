@@ -25,35 +25,40 @@ public class UserSerializer extends StdSerializer<User> {
         gen.writeStringField("uuid", value.getUuid());
         gen.writeStringField("username", value.getUsername());
         gen.writeStringField("registerDate", value.getRegisterDate());
-        gen.writeObjectField("securityDetails", value.getSecurityDetails());
-        gen.writeArrayFieldStart("events");
-        if (value.getEvents() != null) {
+        gen.writeBooleanField("stripped", value.isStripped());
+        if (value.isStripped()) {
+            gen.writeNullField("securityDetails");
+            gen.writeArrayFieldStart("events");
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("organizedEvents");
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("groups");
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("foundedGroups");
+            gen.writeEndArray();
+        } else {
+            gen.writeObjectField("securityDetails", value.getSecurityDetails());
+            gen.writeArrayFieldStart("events");
             for (Event event : value.getEvents()) {
                 gen.writeObject(event.createStrippedCopy());
             }
-        }
-        gen.writeEndArray();
-        gen.writeArrayFieldStart("organizedEvents");
-        if (value.getOrganizedEvents() != null) {
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("organizedEvents");
             for (Event organizedEvent : value.getOrganizedEvents()) {
                 gen.writeObject(organizedEvent.createStrippedCopy());
             }
-        }
-        gen.writeEndArray();
-        gen.writeArrayFieldStart("groups");
-        if (value.getGroups() != null) {
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("groups");
             for (Group group : value.getGroups()) {
                 gen.writeObject(group.createStrippedCopy());
             }
-        }
-        gen.writeEndArray();
-        gen.writeArrayFieldStart("foundedGroups");
-        if (value.getFoundedGroups() != null) {
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("foundedGroups");
             for (Group foundedGroup : value.getFoundedGroups()) {
                 gen.writeObject(foundedGroup.createStrippedCopy());
             }
+            gen.writeEndArray();
         }
-        gen.writeEndArray();
         gen.writeEndObject();
     }
 }

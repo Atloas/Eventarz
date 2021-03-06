@@ -16,13 +16,7 @@
     </div>
     <div class="eventParticipantsCountDiv">
         <div class="eventParticipantsLabel" th:text="#{messages.event.participants}"></div>
-        <th:block th:if="${event.participants}">
-            <!-- TODO: handle this somehow. Ideally in stead of culling references at depth 1 you'd use maybe like that id method. Maybe just generate a number for participant count separate from the list, on object creation. -->
-            <div class="eventParticipantCount" th:text="${event.participants.size()}"></div>
-        </th:block>
-        <th:block th:unless="${event.participants}">
-            <div class="eventParticipantCount" th:text="#{messages.event.zero}"></div>
-        </th:block>
+        <div class="eventParticipantCount" th:text="${event.participantCount}"></div>
         <div class="eventParticipantCountDelimiter" th:text="#{messages.event.participantCountDelimiter}"></div>
         <div class="eventMaxParticipants" th:text="${event.maxParticipants}"></div>
     </div>

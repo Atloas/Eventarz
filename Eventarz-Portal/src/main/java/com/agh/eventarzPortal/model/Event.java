@@ -1,17 +1,16 @@
 package com.agh.eventarzPortal.model;
 
 import com.agh.eventarzPortal.model.serializers.EventSerializer;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Id;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
-import org.springframework.data.annotation.Transient;
+import org.neo4j.ogm.annotation.Transient;
+import org.springframework.data.annotation.PersistenceConstructor;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,8 +19,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @NodeEntity("Event")
 @JsonSerialize(using = EventSerializer.class)
 public class Event {
@@ -44,19 +41,24 @@ public class Event {
     @Setter
     private String eventDate;
     @Transient
-    @JsonIgnore
     @Getter
     private LocalDateTime eventDateObject;
     @Getter
     private String publishedDate;
     @Transient
-    @JsonIgnore
     @Getter
     private LocalDateTime publishedDateObject;
     @Getter
     @Setter
     @Transient
     private boolean expired;
+    @Setter
+    @Transient
+    private int participantCount;
+    @Getter
+    @Setter
+    @Transient
+    private boolean stripped;
 
     @Getter
     @Setter
@@ -71,6 +73,38 @@ public class Event {
     @Relationship(type = "PUBLISHED_IN", direction = Relationship.OUTGOING)
     public Group group;
 
+    @JsonCreator
+    public Event(Long id, String uuid, String name, String description, int maxParticipants, String eventDate, LocalDateTime eventDateObject, String publishedDate, LocalDateTime publishedDateObject, boolean expired, int participantCount, boolean stripped, User organizer, List<User> participants, Group group) {
+        this.id = id;
+        this.uuid = uuid;
+        this.name = name;
+        this.description = description;
+        this.maxParticipants = maxParticipants;
+        this.eventDate = eventDate;
+        this.eventDateObject = eventDateObject;
+        this.publishedDate = publishedDate;
+        this.publishedDateObject = publishedDateObject;
+        //TODO: Expiration
+        this.expired = expired;
+        this.stripped = stripped;
+        if (stripped) {
+            this.participantCount = participantCount;
+            this.participants = null;
+        } else {
+            if (participants == null) {
+                this.participantCount = 0;
+                this.participants = new ArrayList<>();
+            } else {
+                this.participantCount = participants.size();
+                this.participants = participants;
+            }
+        }
+        this.organizer = organizer;
+        this.group = group;
+    }
+
+    //All non-transient arguments constructor used by Neo4j
+    @PersistenceConstructor
     public Event(Long id, String uuid, String name, String description, int maxParticipants, String eventDate, String publishedDate, User organizer, List<User> participants, Group group) {
         this.id = id;
         this.uuid = uuid;
@@ -80,7 +114,13 @@ public class Event {
         this.eventDate = eventDate;
         this.publishedDate = publishedDate;
         this.organizer = organizer;
-        this.participants = participants;
+        if (participants == null) {
+            this.participants = new ArrayList<>();
+            this.participantCount = 0;
+        } else {
+            this.participants = participants;
+            this.participantCount = participants.size();
+        }
         this.group = group;
     }
 
@@ -98,12 +138,9 @@ public class Event {
 
     //TODO: Exception over return value for failure state?
     public boolean participatedBy(User user) {
-        if (participants == null) {
-            participants = new ArrayList<>();
+        if (participants.size() < maxParticipants) {
             participants.add(user);
-            return true;
-        } else if (participants.size() < maxParticipants) {
-            participants.add(user);
+            participantCount += 1;
             return true;
         } else {
             return false;
@@ -111,14 +148,13 @@ public class Event {
     }
 
     public boolean leftBy(String username) {
-        if (participants != null) {
-            Iterator<User> iterator = participants.iterator();
-            while (iterator.hasNext()) {
-                User participant = iterator.next();
-                if (participant.getUsername().compareTo(username) == 0) {
-                    iterator.remove();
-                    return true;
-                }
+        Iterator<User> iterator = participants.iterator();
+        while (iterator.hasNext()) {
+            User participant = iterator.next();
+            if (participant.getUsername().compareTo(username) == 0) {
+                iterator.remove();
+                participantCount -= 1;
+                return true;
             }
         }
         return false;
@@ -141,11 +177,9 @@ public class Event {
     }
 
     public boolean containsMember(String username) {
-        if (participants != null) {
-            for (User participant : participants) {
-                if (participant.getUsername().compareTo(username) == 0) {
-                    return true;
-                }
+        for (User participant : participants) {
+            if (participant.getUsername().compareTo(username) == 0) {
+                return true;
             }
         }
         return false;
@@ -156,9 +190,23 @@ public class Event {
     }
 
     public Event createStrippedCopy() {
+        int participantCount;
+        if (stripped) {
+            participantCount = this.participantCount;
+        } else {
+            participantCount = participants.size();
+        }
         Event copy = new Event(this.id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, null,
-                this.publishedDate, null, this.expired, null, null, null);
+                this.publishedDate, null, this.expired, participantCount, true, null, null, null);
         return copy;
+    }
+
+    public int getParticipantCount() {
+        if (stripped) {
+            return participantCount;
+        } else {
+            return participants.size();
+        }
     }
 
     public String toString() {
