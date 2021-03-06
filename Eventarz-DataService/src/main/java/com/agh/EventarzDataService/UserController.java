@@ -47,7 +47,7 @@ public class UserController {
     @PostMapping("/users")
     User createUser(@RequestBody UserForm userForm) {
         SecurityDetails securityDetails = SecurityDetails.of(userForm.getPasswordHash(), userForm.getRoles());
-        User user = User.of(userForm.getUsername(), securityDetails, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        User user = User.of(userForm.getUsername(), securityDetails, false, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
         user = userRepository.save(user);
         return user;
     }

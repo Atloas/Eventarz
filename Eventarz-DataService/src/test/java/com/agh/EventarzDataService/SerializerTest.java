@@ -26,6 +26,7 @@ public class SerializerTest {
                 "username",
                 "2021/01/01",
                 new SecurityDetails((long) 2, "Password Hash", Arrays.asList("USER")),
+                false,
                 new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>(),
@@ -38,6 +39,7 @@ public class SerializerTest {
                 "Group Name",
                 "A test group",
                 "2021/01/01",
+                false,
                 new ArrayList<>(),
                 new ArrayList<>(),
                 null
@@ -54,40 +56,42 @@ public class SerializerTest {
                 "2021/01/01",
                 null,
                 false,
+                0,
+                false,
                 null,
                 new ArrayList<>(),
                 null
         );
 
-        user.getFoundedGroups().add(group);
-        user.getGroups().add(group);
-        user.getEvents().add(event);
-        user.getOrganizedEvents().add(event);
+        user.founded(group);
+        user.belongsTo(group);
+        user.participatesIn(event);
+        user.organized(event);
 
-        group.getMembers().add(user);
+        group.joinedBy(user);
         group.setFounder(user);
-        group.getEvents().add(event);
+        group.receiveEvent(event);
 
-        event.getParticipants().add(user);
+        event.participatedBy(user);
         event.setOrganizer(user);
         event.setGroup(group);
     }
 
     @Test
-    public void serializesEvents() throws IOException {
+    void serializesEvents() throws IOException {
         String json = new ObjectMapper().writeValueAsString(event);
-        Assertions.assertEquals(json, "{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"organizer\":{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"securityDetails\":{\"id\":2,\"passwordHash\":\"Password Hash\",\"roles\":[\"USER\"]},\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]},\"participants\":[{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"securityDetails\":{\"id\":2,\"passwordHash\":\"Password Hash\",\"roles\":[\"USER\"]},\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]}],\"group\":{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"members\":[],\"events\":[],\"founder\":null}}");
+        Assertions.assertEquals(json, "{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"participantCount\":1,\"stripped\":false,\"organizer\":{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"stripped\":true,\"securityDetails\":null,\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]},\"participants\":[{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"stripped\":true,\"securityDetails\":null,\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]}],\"group\":{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"stripped\":true,\"members\":[],\"events\":[],\"founder\":null}}");
     }
 
     @Test
     void serializesUsers() throws IOException {
         String json = new ObjectMapper().writeValueAsString(user);
-        Assertions.assertEquals(json, "{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"securityDetails\":{\"id\":2,\"passwordHash\":\"Password Hash\",\"roles\":[\"USER\"]},\"events\":[{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"organizer\":null,\"participants\":[],\"group\":null}],\"organizedEvents\":[{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"organizer\":null,\"participants\":[],\"group\":null}],\"groups\":[{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"members\":[],\"events\":[],\"founder\":null}],\"foundedGroups\":[{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"members\":[],\"events\":[],\"founder\":null}]}");
+        Assertions.assertEquals(json, "{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"stripped\":false,\"securityDetails\":{\"id\":2,\"passwordHash\":\"Password Hash\",\"roles\":[\"USER\"]},\"events\":[{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"participantCount\":1,\"stripped\":true,\"organizer\":null,\"participants\":[],\"group\":null}],\"organizedEvents\":[{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"participantCount\":1,\"stripped\":true,\"organizer\":null,\"participants\":[],\"group\":null}],\"groups\":[{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"stripped\":true,\"members\":[],\"events\":[],\"founder\":null}],\"foundedGroups\":[{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"stripped\":true,\"members\":[],\"events\":[],\"founder\":null}]}");
     }
 
     @Test
     void serializesGroups() throws IOException {
         String json = new ObjectMapper().writeValueAsString(group);
-        Assertions.assertEquals(json, "{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"members\":[{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"securityDetails\":{\"id\":2,\"passwordHash\":\"Password Hash\",\"roles\":[\"USER\"]},\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]}],\"events\":[{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"organizer\":null,\"participants\":[],\"group\":null}],\"founder\":{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"securityDetails\":{\"id\":2,\"passwordHash\":\"Password Hash\",\"roles\":[\"USER\"]},\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]}}");
+        Assertions.assertEquals(json, "{\"id\":1,\"uuid\":\"groupUuid\",\"name\":\"Group Name\",\"description\":\"A test group\",\"createdDate\":\"2021/01/01\",\"stripped\":false,\"members\":[{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"stripped\":true,\"securityDetails\":null,\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]}],\"events\":[{\"id\":4,\"uuid\":\"uuid\",\"name\":\"Event Name\",\"description\":\"A test Event\",\"maxParticipants\":5,\"eventDate\":\"2021/01/03\",\"publishedDate\":\"2021/01/01\",\"expired\":false,\"participantCount\":1,\"stripped\":true,\"organizer\":null,\"participants\":[],\"group\":null}],\"founder\":{\"id\":1,\"uuid\":\"userUuid\",\"username\":\"username\",\"registerDate\":\"2021/01/01\",\"stripped\":true,\"securityDetails\":null,\"events\":[],\"organizedEvents\":[],\"groups\":[],\"foundedGroups\":[]}}");
     }
 }

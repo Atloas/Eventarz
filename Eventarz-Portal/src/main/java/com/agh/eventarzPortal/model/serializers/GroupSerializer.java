@@ -26,24 +26,26 @@ public class GroupSerializer extends StdSerializer<Group> {
         gen.writeStringField("name", value.getName());
         gen.writeStringField("description", value.getDescription());
         gen.writeStringField("createdDate", value.getCreatedDate());
-        gen.writeArrayFieldStart("members");
-        if (value.getMembers() != null) {
+        gen.writeBooleanField("stripped", value.isStripped());
+        if (value.isStripped()) {
+            gen.writeArrayFieldStart("members");
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("events");
+            gen.writeEndArray();
+            gen.writeNullField("founder");
+        } else {
+            gen.writeArrayFieldStart("members");
             for (User user : value.getMembers()) {
                 gen.writeObject(user.createStrippedCopy());
             }
-        }
-        gen.writeEndArray();
-        gen.writeArrayFieldStart("events");
-        if (value.getEvents() != null) {
+            gen.writeEndArray();
+            gen.writeArrayFieldStart("events");
             for (Event event : value.getEvents()) {
                 gen.writeObject(event.createStrippedCopy());
             }
-        }
-        gen.writeEndArray();
-        if (value.getFounder() != null) {
+            gen.writeEndArray();
             gen.writeObjectField("founder", value.getFounder().createStrippedCopy());
-        } else {
-            gen.writeNullField("founder");
+
         }
         gen.writeEndObject();
     }

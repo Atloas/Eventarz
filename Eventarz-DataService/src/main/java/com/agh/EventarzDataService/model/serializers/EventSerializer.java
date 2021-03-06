@@ -1,6 +1,7 @@
 package com.agh.EventarzDataService.model.serializers;
 
 import com.agh.EventarzDataService.model.Event;
+import com.agh.EventarzDataService.model.Group;
 import com.agh.EventarzDataService.model.User;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -21,22 +22,21 @@ public class EventSerializer extends JsonSerializer<Event> {
         gen.writeStringField("eventDate", value.getEventDate());
         gen.writeStringField("publishedDate", value.getPublishedDate());
         gen.writeBooleanField("expired", value.isExpired());
-        if (value.getOrganizer() != null) {
-            gen.writeObjectField("organizer", value.getOrganizer().createStrippedCopy());
-        } else {
+        gen.writeNumberField("participantCount", value.getParticipantCount());
+        gen.writeBooleanField("stripped", value.isStripped());
+        if (value.isStripped()) {
             gen.writeNullField("organizer");
-        }
-        gen.writeArrayFieldStart("participants");
-        if (value.getParticipants() != null) {
+            gen.writeArrayFieldStart("participants");
+            gen.writeEndArray();
+            gen.writeNullField("group");
+        } else {
+            gen.writeObjectField("organizer", value.getOrganizer().createStrippedCopy());
+            gen.writeArrayFieldStart("participants");
             for (User user : value.getParticipants()) {
                 gen.writeObject(user.createStrippedCopy());
             }
-        }
-        gen.writeEndArray();
-        if (value.getGroup() != null) {
+            gen.writeEndArray();
             gen.writeObjectField("group", value.getGroup().createStrippedCopy());
-        } else {
-            gen.writeNullField("group");
         }
         gen.writeEndObject();
     }

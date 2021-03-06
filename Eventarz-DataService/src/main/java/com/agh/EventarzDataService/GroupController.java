@@ -75,7 +75,7 @@ public class GroupController {
     public Group createGroup(@RequestBody GroupForm groupForm) {
         //Assumes valid groupForm
         User founder = userRepository.findByUsername(groupForm.getFounderUsername());
-        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new ArrayList<>(), new ArrayList<>(), founder);
+        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), false, new ArrayList<>(), new ArrayList<>(), founder);
         newGroup = groupRepository.save(newGroup);
         //TODO: Is this necessary?
         groupRepository.belongsTo(newGroup.getUuid(), founder.getUsername());

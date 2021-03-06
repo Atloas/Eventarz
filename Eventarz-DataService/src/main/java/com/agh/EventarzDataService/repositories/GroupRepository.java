@@ -11,6 +11,11 @@ import java.util.List;
 @Repository
 public interface GroupRepository extends Neo4jRepository<Group, Long> {
 
+    @Query("MATCH (group:Group {uuid: $0})<-[founded:FOUNDED]-(founder:User) " +
+            "OPTIONAL MATCH (group)<-[belongsTo:BELONGS_TO]-(member:User) " +
+            "OPTIONAL MATCH (group)<-[publishedIn:PUBLISHED_IN]-(event:Event) " +
+            "OPTIONAL MATCH (event)<-[participatesIn:PARTICIPATES_IN]-(participant:User) " +
+            "RETURN group, founded, founder, belongsTo, member, publishedIn, event, participatesIn")
     Group findByUuid(String uuid);
 
     List<Group> findByNameRegex(String regex);
