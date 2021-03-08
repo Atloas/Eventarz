@@ -1,6 +1,6 @@
-package com.agh.EventarzDataService.model;
+package com.agh.EventarzApplication.model;
 
-import com.agh.EventarzDataService.model.serializers.EventSerializer;
+import com.agh.EventarzApplication.model.serialization.EventSerializer;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;

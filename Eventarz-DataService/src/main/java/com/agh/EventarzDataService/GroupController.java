@@ -21,6 +21,7 @@ import com.agh.EventarzDataService.model.User;
 import com.agh.EventarzDataService.repositories.EventRepository;
 import com.agh.EventarzDataService.repositories.GroupRepository;
 import com.agh.EventarzDataService.repositories.UserRepository;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,30 +49,34 @@ public class GroupController {
 
     private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
 
-    @Transactional
     @GetMapping(value = "/groups")
+    @Transactional
+    @Retry(name = "getGroupByUuidRetry")
     public Group getGroupByUuid(@RequestParam String uuid) {
         Group group = groupRepository.findByUuid(uuid);
         //TODO: group not found
         return group;
     }
 
-    @Transactional
     @GetMapping(value = "/groups/my")
+    @Transactional
+    @Retry(name = "getMyGroupsRetry")
     public List<Group> getMyGroups(@RequestParam String username) {
         List<Group> groups = groupRepository.findMyGroups(username);
         return groups;
     }
 
-    @Transactional
     @GetMapping(value = "/groups/regex")
+    @Transactional
+    @Retry(name = "getGroupsRegexRetry")
     public List<Group> getGroupsRegex(@RequestParam String regex) {
         List<Group> groups = groupRepository.findByNameRegex(regex);
         return groups;
     }
 
-    @Transactional
     @PostMapping(value = "/groups")
+    @Transactional
+    @Retry(name = "createGroupRetry")
     public Group createGroup(@RequestBody GroupForm groupForm) {
         //Assumes valid groupForm
         User founder = userRepository.findByUsername(groupForm.getFounderUsername());
@@ -82,8 +87,9 @@ public class GroupController {
         return newGroup;
     }
 
-    @Transactional
     @PutMapping(value = "/groups/join")
+    @Transactional
+    @Retry(name = "joinGroupRetry")
     public Group joinGroup(@RequestParam String uuid, @RequestParam String username) {
         User user = userRepository.findByUsername(username);
         Group group = groupRepository.findByUuid(uuid);
@@ -93,8 +99,9 @@ public class GroupController {
         return group;
     }
 
-    @Transactional
     @PutMapping(value = "/groups/leave")
+    @Transactional
+    @Retry(name = "leaveGroupRetry")
     public Group leaveGroup(@RequestParam String uuid, @RequestParam String username) {
         User user = userRepository.findByUsername(username);
         Group group = groupRepository.findByUuid(uuid);
@@ -107,8 +114,9 @@ public class GroupController {
         return group;
     }
 
-    @Transactional
     @DeleteMapping(value = "/groups")
+    @Transactional
+    @Retry(name = "deleteGroupRetry")
     public Long deleteGroup(@RequestParam String uuid, @RequestParam String username) {
         if (groupRepository.isFounder(uuid, username)) {
             return groupRepository.deleteByUuid(uuid);
@@ -117,8 +125,9 @@ public class GroupController {
         return (long) -1;
     }
 
-    @Transactional
     @DeleteMapping(value = "/admin/groups")
+    @Transactional
+    @Retry(name = "adminDeleteGroupRetry")
     public Long adminDeleteGroup(@RequestParam String uuid) {
         return groupRepository.deleteByUuid(uuid);
     }
