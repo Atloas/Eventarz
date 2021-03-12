@@ -1,11 +1,11 @@
 package com.agh.EventarzApplication.feignClients;
 
-import com.agh.EventarzApplication.model.Event;
+import com.agh.EventarzApplication.model.EventDTO;
 import com.agh.EventarzApplication.model.EventForm;
-import com.agh.EventarzApplication.model.Group;
+import com.agh.EventarzApplication.model.GroupDTO;
 import com.agh.EventarzApplication.model.GroupForm;
-import com.agh.EventarzApplication.model.SecurityDetails;
-import com.agh.EventarzApplication.model.User;
+import com.agh.EventarzApplication.model.SecurityDetailsDTO;
+import com.agh.EventarzApplication.model.UserDTO;
 import com.agh.EventarzApplication.model.UserForm;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,19 +23,19 @@ public interface DataClient {
     //Users
 
     @GetMapping("/users")
-    User getUser(@RequestParam String username);
+    UserDTO getUser(@RequestParam String username);
 
     @GetMapping("/users/uuid")
     String getUuidByUsername(@RequestParam String username);
 
     @GetMapping("/users/security")
-    SecurityDetails getSecurityDetails(@RequestParam String username);
+    SecurityDetailsDTO getSecurityDetails(@RequestParam String username);
 
     @GetMapping("users/regex")
-    List<User> getUsersByRegex(@RequestParam String regex);
+    List<UserDTO> getUsersByRegex(@RequestParam String regex);
 
     @PostMapping("/users")
-    User createUser(@RequestBody UserForm userForm);
+    UserDTO createUser(@RequestBody UserForm userForm);
 
     @DeleteMapping("/users")
     Long deleteUser(@RequestParam String username);
@@ -43,13 +43,13 @@ public interface DataClient {
     //Events
 
     @GetMapping("/events")
-    Event getEvent(@RequestParam String uuid);
+    EventDTO getEvent(@RequestParam String uuid);
 
     @GetMapping("/events/my")
-    List<Event> getMyEvents(@RequestParam String username);
+    List<EventDTO> getMyEvents(@RequestParam String username);
 
     @GetMapping("/events/regex")
-    List<Event> getEventsByRegex(@RequestParam String regex);
+    List<EventDTO> getEventsByRegex(@RequestParam String regex);
 
     @GetMapping("events/allowedToJoin")
     boolean checkIfAllowedToJoinEvent(@RequestParam String uuid, @RequestParam String username);
@@ -58,13 +58,13 @@ public interface DataClient {
     boolean checkIfAllowedToPublishEvent(@RequestParam String groupUuid, @RequestParam String username);
 
     @PostMapping("/events")
-    Event createEvent(@RequestBody EventForm eventForm);
+    EventDTO createEvent(@RequestBody EventForm eventForm);
 
     @PutMapping("/events/join")
-    Event joinEvent(@RequestParam String uuid, @RequestParam String username);
+    EventDTO joinEvent(@RequestParam String uuid, @RequestParam String username);
 
     @PutMapping("/events/leave")
-    Event leaveEvent(@RequestParam String uuid, @RequestParam String username);
+    EventDTO leaveEvent(@RequestParam String uuid, @RequestParam String username);
 
     @DeleteMapping("/events")
     Long deleteEvent(@RequestParam String uuid);
@@ -72,22 +72,22 @@ public interface DataClient {
     //Groups
 
     @GetMapping("/groups")
-    Group getGroup(@RequestParam String uuid);
+    GroupDTO getGroup(@RequestParam String uuid);
 
     @GetMapping("/groups/my")
-    List<Group> getMyGroups(@RequestParam String username);
+    List<GroupDTO> getMyGroups(@RequestParam String username);
 
     @GetMapping("/groups/regex")
-    List<Group> getGroupsByRegex(@RequestParam String regex);
+    List<GroupDTO> getGroupsByRegex(@RequestParam String regex);
 
     @PostMapping("/groups")
-    Group createGroup(@RequestBody GroupForm groupForm);
+    GroupDTO createGroup(@RequestBody GroupForm groupForm);
 
     @PutMapping("/groups/join")
-    Group joinGroup(@RequestParam String uuid, @RequestParam String username);
+    GroupDTO joinGroup(@RequestParam String uuid, @RequestParam String username);
 
     @PutMapping("/groups/leave")
-    Group leaveGroup(@RequestParam String uuid, @RequestParam String username);
+    GroupDTO leaveGroup(@RequestParam String uuid, @RequestParam String username);
 
     @DeleteMapping("/groups")
     Long deleteGroup(@RequestParam String uuid, @RequestParam String username);

@@ -19,11 +19,11 @@ import com.agh.EventarzApplication.EventarzApplication;
 import com.agh.EventarzApplication.UserAlreadyExistsException;
 import com.agh.EventarzApplication.UserService;
 import com.agh.EventarzApplication.feignClients.DataClient;
-import com.agh.EventarzApplication.model.Event;
+import com.agh.EventarzApplication.model.EventDTO;
 import com.agh.EventarzApplication.model.EventForm;
-import com.agh.EventarzApplication.model.Group;
+import com.agh.EventarzApplication.model.GroupDTO;
 import com.agh.EventarzApplication.model.GroupForm;
-import com.agh.EventarzApplication.model.User;
+import com.agh.EventarzApplication.model.UserDTO;
 import com.agh.EventarzApplication.model.UserForm;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -91,7 +92,7 @@ public class MainController {
             return "registration";
         }
         try {
-            User user = userService.registerNewUserAccount(userForm);
+            UserDTO user = userService.registerNewUserAccount(userForm);
         } catch (UserAlreadyExistsException uaeEx) {
             model.addAttribute("errorUserExists", true);
             return "registration";
@@ -103,7 +104,7 @@ public class MainController {
     @RequestMapping(value = "/group", method = RequestMethod.GET)
     @Retry(name = "getGroupByUuidRetry")
     public String getGroupByUuid(@RequestParam String uuid, Model model, Principal principal) {
-        Group group = dataClient.getGroup(uuid);
+        GroupDTO group = dataClient.getGroup(uuid);
         if (group == null) {
             log.error("Requested group not returned from DB!");
             model.addAttribute("errorDb", true);
@@ -122,7 +123,7 @@ public class MainController {
     @RequestMapping(value = "/event", method = RequestMethod.GET)
     @Retry(name = "getEventByUuidRetry")
     public String getEventByUuid(@RequestParam String uuid, Model model, Principal principal) {
-        Event event = dataClient.getEvent(uuid);
+        EventDTO event = dataClient.getEvent(uuid);
         if (event == null) {
             log.error("Requested event not returned from DB!");
             model.addAttribute("errorDb", true);
@@ -145,10 +146,10 @@ public class MainController {
     @Retry(name = "getMyEventsRetry")
     public String getMyEvents(Model model, Principal principal) {
         LocalDateTime now = LocalDateTime.now();
-        List<Event> events = dataClient.getMyEvents(principal.getName());
-        Iterator<Event> eventIterator = events.iterator();
+        List<EventDTO> events = dataClient.getMyEvents(principal.getName());
+        Iterator<EventDTO> eventIterator = events.iterator();
         while (eventIterator.hasNext()) {
-            Event event = eventIterator.next();
+            EventDTO event = eventIterator.next();
             Period period = Period.between(now.toLocalDate(), event.getEventDateObject().toLocalDate());
             if (period.getDays() < -1) {
                 dataClient.deleteEvent(event.getUuid());
@@ -168,11 +169,11 @@ public class MainController {
         model.addAttribute("username", principal.getName());
         model.addAttribute("serverTime", now.format(dtf));
 
-        List<Event> events = dataClient.getMyEvents(principal.getName());
-        List<Event> upcomingEvents = new ArrayList<>();
-        Iterator<Event> eventIterator = events.iterator();
+        List<EventDTO> events = dataClient.getMyEvents(principal.getName());
+        List<EventDTO> upcomingEvents = new ArrayList<>();
+        Iterator<EventDTO> eventIterator = events.iterator();
         while (eventIterator.hasNext()) {
-            Event event = eventIterator.next();
+            EventDTO event = eventIterator.next();
             Period period = Period.between(now.toLocalDate(), event.getEventDateObject().toLocalDate());
             if (period.getDays() < -1) {
                 dataClient.deleteEvent(event.getUuid());
@@ -191,7 +192,7 @@ public class MainController {
     @RequestMapping(value = "/myGroups", method = RequestMethod.GET)
     @Retry(name = "myGroupsRetry")
     public String getMyGroups(Model model, Principal principal) {
-        List<Group> groups = dataClient.getMyGroups(principal.getName());
+        List<GroupDTO> groups = dataClient.getMyGroups(principal.getName());
         model.addAttribute("groups", groups);
         return "myGroups";
     }
@@ -199,7 +200,7 @@ public class MainController {
     @RequestMapping(value = "/createEvent", method = RequestMethod.GET)
     @Retry(name = "showCreateEventRetry")
     public String showCreateEvent(Model model, Principal principal) {
-        List<Group> myGroups = dataClient.getMyGroups(principal.getName());
+        List<GroupDTO> myGroups = dataClient.getMyGroups(principal.getName());
         if (myGroups.size() == 0) {
             model.addAttribute("noGroups", true);
             return "createEvent";
@@ -219,7 +220,7 @@ public class MainController {
         }
         boolean allowed = dataClient.checkIfAllowedToPublishEvent(eventForm.getGroupUuid(), principal.getName());
         if (allowed) {
-            Event newEvent = dataClient.createEvent(eventForm);
+            EventDTO newEvent = dataClient.createEvent(eventForm);
             model.addAttribute("infoEventCreated", true);
             return "redirect:event?uuid=" + newEvent.getUuid();
         } else {
@@ -242,7 +243,7 @@ public class MainController {
             model.addAttribute("errorGroupInvalid", true);
             return "createGroup";
         }
-        Group group = dataClient.createGroup(groupForm);
+        GroupDTO group = dataClient.createGroup(groupForm);
         model.addAttribute("infoGroupCreated", true);
         return "redirect:group?uuid=" + group.getUuid();
     }
@@ -250,7 +251,7 @@ public class MainController {
     @RequestMapping(value = "/findGroup", method = RequestMethod.GET)
     @Retry(name = "findGroupRetry")
     public String findGroup(@RequestParam(required = false) String name, Model model) {
-        List<Group> foundGroups = null;
+        List<GroupDTO> foundGroups = null;
         if (name != null) {
             foundGroups = dataClient.getGroupsByRegex("(?i).*" + name + ".*");
             model.addAttribute("searched", true);
@@ -317,7 +318,7 @@ public class MainController {
      * @param b The second object to compare.
      * @return -1 if a &lt; b, 0 if a == b, 1 if a &gt; b
      */
-    private int compareEventDates(Event a, Event b) {
+    private int compareEventDates(EventDTO a, EventDTO b) {
         if (a.getEventDateObject().isBefore(b.getEventDateObject())) {
             return -1;
         } else if (b.getEventDateObject().isBefore(a.getEventDateObject())) {

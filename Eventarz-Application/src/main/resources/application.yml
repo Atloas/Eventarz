@@ -1,11 +1,11 @@
+server:
+  port: 8080
+  use-forward-headers: true
+  tomcat.protocol-header: X-Forwarded-Proto
+  tomcat.remote-ip-header: X-Forwarded-For
 spring:
   application:
     name: "eventarz-application"
-  data:
-    neo4j:
-      uri: "bolt://18.222.117.2:7687"
-      username: "neo4j"
-      password: "i-0fb5191d82a056e60"
   cloud.loadbalancer.ribbon.enabled: false
 eureka:
   client:

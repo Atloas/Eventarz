@@ -16,6 +16,7 @@
 package com.agh.EventarzDataService;
 
 import com.agh.EventarzDataService.model.Group;
+import com.agh.EventarzDataService.model.GroupDTO;
 import com.agh.EventarzDataService.model.GroupForm;
 import com.agh.EventarzDataService.model.User;
 import com.agh.EventarzDataService.repositories.EventRepository;
@@ -52,57 +53,68 @@ public class GroupController {
     @GetMapping(value = "/groups")
     @Transactional
     @Retry(name = "getGroupByUuidRetry")
-    public Group getGroupByUuid(@RequestParam String uuid) {
+    public GroupDTO getGroupByUuid(@RequestParam String uuid) {
         Group group = groupRepository.findByUuid(uuid);
+        GroupDTO groupDTO = group.createDTO();
         //TODO: group not found
-        return group;
+        return groupDTO;
     }
 
     @GetMapping(value = "/groups/my")
     @Transactional
     @Retry(name = "getMyGroupsRetry")
-    public List<Group> getMyGroups(@RequestParam String username) {
+    public List<GroupDTO> getMyGroups(@RequestParam String username) {
         List<Group> groups = groupRepository.findMyGroups(username);
-        return groups;
+        List<GroupDTO> groupDTOs = new ArrayList<>();
+        for (Group group : groups) {
+            groupDTOs.add(group.createDTO());
+        }
+        return groupDTOs;
     }
 
     @GetMapping(value = "/groups/regex")
     @Transactional
     @Retry(name = "getGroupsRegexRetry")
-    public List<Group> getGroupsRegex(@RequestParam String regex) {
+    public List<GroupDTO> getGroupsRegex(@RequestParam String regex) {
         List<Group> groups = groupRepository.findByNameRegex(regex);
-        return groups;
+        List<GroupDTO> groupDTOs = new ArrayList<>();
+        for (Group group : groups) {
+            groupDTOs.add(group.createDTO());
+        }
+        return groupDTOs;
     }
 
     @PostMapping(value = "/groups")
     @Transactional
     @Retry(name = "createGroupRetry")
-    public Group createGroup(@RequestBody GroupForm groupForm) {
+    public GroupDTO createGroup(@RequestBody GroupForm groupForm) {
         //Assumes valid groupForm
         User founder = userRepository.findByUsername(groupForm.getFounderUsername());
-        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), false, new ArrayList<>(), new ArrayList<>(), founder);
+        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new ArrayList<>(), new ArrayList<>(), founder);
         newGroup = groupRepository.save(newGroup);
         //TODO: Is this necessary?
         groupRepository.belongsTo(newGroup.getUuid(), founder.getUsername());
-        return newGroup;
+        GroupDTO newGroupDTO = newGroup.createDTO();
+        return newGroupDTO;
     }
 
     @PutMapping(value = "/groups/join")
     @Transactional
     @Retry(name = "joinGroupRetry")
-    public Group joinGroup(@RequestParam String uuid, @RequestParam String username) {
+    public GroupDTO joinGroup(@RequestParam String uuid, @RequestParam String username) {
         User user = userRepository.findByUsername(username);
         Group group = groupRepository.findByUuid(uuid);
         group.joinedBy(user);
         //TODO: Is this necessary?
         groupRepository.belongsTo(uuid, username);
-        return group;
+        GroupDTO groupDTO = group.createDTO();
+        return groupDTO;
     }
 
     @PutMapping(value = "/groups/leave")
     @Transactional
     @Retry(name = "leaveGroupRetry")
-    public Group leaveGroup(@RequestParam String uuid, @RequestParam String username) {
+    public GroupDTO leaveGroup(@RequestParam String uuid, @RequestParam String username) {
         User user = userRepository.findByUsername(username);
         Group group = groupRepository.findByUuid(uuid);
         group.leftBy(user.getUsername());
@@ -110,8 +122,11 @@ public class GroupController {
         groupRepository.leftBy(user.getUsername(), uuid);
         if (group.getMembers().size() == 0) {
             groupRepository.deleteByUuid(group.getUuid());
+            //TODO: Should this be like this?
+            return null;
         }
-        return group;
+        GroupDTO groupDTO = group.createDTO();
+        return groupDTO;
     }
 
     @DeleteMapping(value = "/groups")

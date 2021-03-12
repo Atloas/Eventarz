@@ -2,9 +2,9 @@ package com.agh.EventarzApplication.web;
 
 import com.agh.EventarzApplication.EventarzApplication;
 import com.agh.EventarzApplication.feignClients.DataClient;
-import com.agh.EventarzApplication.model.Event;
-import com.agh.EventarzApplication.model.Group;
-import com.agh.EventarzApplication.model.User;
+import com.agh.EventarzApplication.model.EventDTO;
+import com.agh.EventarzApplication.model.GroupDTO;
+import com.agh.EventarzApplication.model.UserDTO;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +29,13 @@ public class AdminController {
     @RequestMapping(value = "/admin/user", method = RequestMethod.GET)
     @Retry(name = "adminGetUserByUuidRetry")
     public String adminGetUserByUuid(@RequestParam String username, Model model, Principal principal) {
-        User user = dataClient.getUser(username);
+        UserDTO user = dataClient.getUser(username);
         if (user == null) {
             log.error("Requested user not returned from DB!");
             model.addAttribute("errorDb", true);
             return "redirect:/home";
         }
-        if (user.getSecurityDetails().getRoles().contains("ADMIN")) {
+        if (user.getSecurityDetailsDTO().getRoles().contains("ADMIN")) {
             model.addAttribute("admin", true);
         }
         model.addAttribute("user", user);
@@ -45,7 +45,7 @@ public class AdminController {
     @RequestMapping(value = "/admin/findGroup", method = RequestMethod.GET)
     @Retry(name = "adminFindGroupRetry")
     public String adminFindGroup(@RequestParam(required = false) String name, Model model) {
-        List<Group> foundGroups = null;
+        List<GroupDTO> foundGroups = null;
         if (name != null) {
             foundGroups = dataClient.getGroupsByRegex("(?i).*" + name + ".*");
             model.addAttribute("searched", true);
@@ -57,7 +57,7 @@ public class AdminController {
     @RequestMapping(value = "/admin/findEvent", method = RequestMethod.GET)
     @Retry(name = "adminFindEventRetry")
     public String adminFindEvent(@RequestParam(required = false) String name, Model model) {
-        List<Event> foundEvents = null;
+        List<EventDTO> foundEvents = null;
         if (name != null) {
             foundEvents = dataClient.getEventsByRegex("(?i).*" + name + ".*");
             model.addAttribute("searched", true);
@@ -69,7 +69,7 @@ public class AdminController {
     @RequestMapping(value = "/admin/findUser", method = RequestMethod.GET)
     @Retry(name = "adminFindUserRetry")
     public String adminFindUser(@RequestParam(required = false) String username, Model model) {
-        List<User> foundUsers = null;
+        List<UserDTO> foundUsers = null;
         if (username != null) {
             foundUsers = dataClient.getUsersByRegex("(?i).*" + username + ".*");
             model.addAttribute("searched", true);
@@ -81,7 +81,7 @@ public class AdminController {
     @RequestMapping(value = "/admin/deleteUser", method = RequestMethod.POST)
     @Retry(name = "adminDeleteUserRetry")
     public String adminDeleteUser(@RequestParam String username, Model model) {
-        User user = dataClient.getUser(username);
+        UserDTO user = dataClient.getUser(username);
         dataClient.deleteUser(username);
         model.addAttribute("infoUserDeleted", true);
         return "redirect:/home";

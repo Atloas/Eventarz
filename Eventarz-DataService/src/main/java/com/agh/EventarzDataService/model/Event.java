@@ -1,15 +1,11 @@
 package com.agh.EventarzDataService.model;
 
-import com.agh.EventarzDataService.model.serializers.EventSerializer;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.Setter;
 import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Id;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
-import org.neo4j.ogm.annotation.Transient;
 import org.springframework.data.annotation.PersistenceConstructor;
 
 import java.time.LocalDateTime;
@@ -20,7 +16,6 @@ import java.util.List;
 import java.util.UUID;
 
 @NodeEntity("Event")
-@JsonSerialize(using = EventSerializer.class)
 public class Event {
     @Id
     @GeneratedValue
@@ -40,66 +35,21 @@ public class Event {
     @Getter
     @Setter
     private String eventDate;
-    @Transient
-    private LocalDateTime eventDateObject;
     @Getter
     private String publishedDate;
-    @Transient
-    private LocalDateTime publishedDateObject;
-    @Getter
-    @Setter
-    @Transient
-    private boolean expired;
-    @Setter
-    @Transient
-    private int participantCount;
-    @Getter
-    @Setter
-    @Transient
-    private boolean stripped;
 
     @Getter
     @Setter
     @Relationship(type = "ORGANIZED", direction = Relationship.INCOMING)
-    public User organizer;
+    private User organizer;
     @Getter
     @Setter
     @Relationship(type = "PARTICIPATES_IN", direction = Relationship.INCOMING)
-    public List<User> participants;
+    private List<User> participants;
     @Getter
     @Setter
     @Relationship(type = "PUBLISHED_IN", direction = Relationship.OUTGOING)
-    public Group group;
-
-    @JsonCreator
-    public Event(Long id, String uuid, String name, String description, int maxParticipants, String eventDate, LocalDateTime eventDateObject, String publishedDate, LocalDateTime publishedDateObject, boolean expired, int participantCount, boolean stripped, User organizer, List<User> participants, Group group) {
-        this.id = id;
-        this.uuid = uuid;
-        this.name = name;
-        this.description = description;
-        this.maxParticipants = maxParticipants;
-        this.eventDate = eventDate;
-        this.eventDateObject = eventDateObject;
-        this.publishedDate = publishedDate;
-        this.publishedDateObject = publishedDateObject;
-        //TODO: Expiration
-        this.expired = expired;
-        this.stripped = stripped;
-        if (stripped) {
-            this.participantCount = participantCount;
-            this.participants = null;
-        } else {
-            if (participants == null) {
-                this.participantCount = 0;
-                this.participants = new ArrayList<>();
-            } else {
-                this.participantCount = participants.size();
-                this.participants = participants;
-            }
-        }
-        this.organizer = organizer;
-        this.group = group;
-    }
+    private Group group;
 
     //All non-transient arguments constructor used by Neo4j
     @PersistenceConstructor
@@ -114,18 +64,11 @@ public class Event {
         this.organizer = organizer;
         if (participants == null) {
             this.participants = new ArrayList<>();
-            this.participantCount = 0;
         } else {
             this.participants = participants;
-            this.participantCount = participants.size();
         }
         this.group = group;
     }
-
-//    public Event(Event that) {
-//        this(that.id, that.uuid, that.name, that.description, that.maxParticipants, that.eventDate, that.eventDateObject,
-//                that.publishedDate, that.publishedDateObject, that.expired, that.organizer, that.participants, that.group);
-//    }
 
     public static Event of(String name, String description, int maxParticipants, String eventDate, User organizer, List<User> participants, Group group) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
@@ -138,7 +81,6 @@ public class Event {
     public boolean participatedBy(User user) {
         if (participants.size() < maxParticipants) {
             participants.add(user);
-            participantCount += 1;
             return true;
         } else {
             return false;
@@ -151,27 +93,10 @@ public class Event {
             User participant = iterator.next();
             if (participant.getUsername().compareTo(username) == 0) {
                 iterator.remove();
-                participantCount -= 1;
                 return true;
             }
         }
         return false;
-    }
-
-    public LocalDateTime getEventDateObject() {
-        if (eventDateObject == null) {
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-            eventDateObject = LocalDateTime.parse(eventDate, dtf);
-        }
-        return eventDateObject;
-    }
-
-    public LocalDateTime getPublishedDateObject() {
-        if (publishedDateObject == null) {
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
-            publishedDateObject = LocalDateTime.parse(publishedDate, dtf);
-        }
-        return publishedDateObject;
     }
 
     public boolean containsMember(String username) {
@@ -183,28 +108,51 @@ public class Event {
         return false;
     }
 
-    public Event withId(Long id) {
-        return new Event(id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, this.publishedDate, this.organizer, this.participants, this.group);
+    public EventDTO createDTO() {
+        ArrayList<UserDTO> participants = new ArrayList<>();
+        for (User participant : this.participants) {
+            participants.add(participant.createStrippedDTO());
+        }
+
+        return new EventDTO(
+                this.id,
+                this.uuid,
+                this.name,
+                this.description,
+                this.maxParticipants,
+                this.eventDate,
+                null,
+                this.publishedDate,
+                null,
+                //TODO: Expiration
+                false,
+                participants.size(),
+                false,
+                this.organizer.createStrippedDTO(),
+                participants,
+                this.group.createStrippedDTO()
+        );
     }
 
-    public Event createStrippedCopy() {
-        int participantCount;
-        if (stripped) {
-            participantCount = this.participantCount;
-        } else {
-            participantCount = participants.size();
-        }
-        Event copy = new Event(this.id, this.uuid, this.name, this.description, this.maxParticipants, this.eventDate, null,
-                this.publishedDate, null, this.expired, participantCount, true, null, null, null);
-        return copy;
-    }
-
-    public int getParticipantCount() {
-        if (stripped) {
-            return participantCount;
-        } else {
-            return participants.size();
-        }
+    public EventDTO createStrippedDTO() {
+        return new EventDTO(
+                this.id,
+                this.uuid,
+                this.name,
+                this.description,
+                this.maxParticipants,
+                this.eventDate,
+                null,
+                this.publishedDate,
+                null,
+                //TODO: Expiration
+                false,
+                this.participants.size(),
+                true,
+                null,
+                new ArrayList<>(),
+                null
+        );
     }
 
     public String toString() {

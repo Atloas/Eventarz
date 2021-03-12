@@ -16,6 +16,7 @@
 package com.agh.EventarzDataService;
 
 import com.agh.EventarzDataService.model.Event;
+import com.agh.EventarzDataService.model.EventDTO;
 import com.agh.EventarzDataService.model.EventForm;
 import com.agh.EventarzDataService.model.Group;
 import com.agh.EventarzDataService.model.User;
@@ -55,27 +56,36 @@ public class EventController {
     @GetMapping(value = "/events")
     @Transactional
     @Retry(name = "getEventByUuidRetry")
-    public Event getEventByUuid(@RequestParam String uuid) {
+    public EventDTO getEventByUuid(@RequestParam String uuid) {
         Event event = eventRepository.findByUuid(uuid);
-        //TODO: event not found
-        return event;
+        //TODO: event not found?
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
     }
 
     @GetMapping(value = "/events/my")
     @Transactional
     @Retry(name = "getMyEventsRetry")
-    public List<Event> getMyEvents(@RequestParam String username) {
+    public List<EventDTO> getMyEvents(@RequestParam String username) {
         List<Event> events = eventRepository.findMyEvents(username);
-        events.sort(this::compareEventDates);
-        return events;
+        List<EventDTO> eventDTOs = new ArrayList<>();
+        for (Event event : events) {
+            eventDTOs.add(event.createDTO());
+        }
+        eventDTOs.sort(this::compareEventDates);
+        return eventDTOs;
     }
 
     @GetMapping(value = "/events/regex")
     @Transactional
     @Retry(name = "getEventsRegexRetry")
-    public List<Event> getEventsRegex(@RequestParam String regex) {
+    public List<EventDTO> getEventsRegex(@RequestParam String regex) {
         List<Event> events = eventRepository.findByNameRegex(regex);
-        return events;
+        List<EventDTO> eventDTOs = new ArrayList<>();
+        for (Event event : events) {
+            eventDTOs.add(event.createDTO());
+        }
+        return eventDTOs;
     }
 
     @GetMapping(value = "/events/allowedToJoin")
@@ -95,7 +105,7 @@ public class EventController {
     @PostMapping(value = "/events")
     @Transactional
     @Retry(name = "createEventRetry")
-    public Event createEvent(@RequestBody EventForm eventForm) {
+    public EventDTO createEvent(@RequestBody EventForm eventForm) {
         //Assumes valid eventForm
         User organizer = userRepository.findByUsername(eventForm.getOrganizerUsername());
         Group group = groupRepository.findByUuid(eventForm.getGroupUuid());
@@ -104,29 +114,32 @@ public class EventController {
             newEvent.participatedBy(organizer);
         }
         newEvent = eventRepository.save(newEvent);
-        return newEvent;
+        EventDTO newEventDTO = newEvent.createDTO();
+        return newEventDTO;
     }
 
     @PutMapping(value = "/events/join")
     @Transactional
     @Retry(name = "joinEventRetry")
-    public Event joinEvent(@RequestParam String uuid, @RequestParam String username) {
+    public EventDTO joinEvent(@RequestParam String uuid, @RequestParam String username) {
         Event event = eventRepository.findByUuid(uuid);
         User user = userRepository.findByUsername(username);
         event.participatedBy(user);
         eventRepository.participatesIn(event.getUuid(), username);
-        return event;
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
     }
 
     @PutMapping(value = "/events/leave")
     @Transactional
     @Retry(name = "leaveEventRetry")
-    public Event leaveEvent(@RequestParam String uuid, @RequestParam String username) {
+    public EventDTO leaveEvent(@RequestParam String uuid, @RequestParam String username) {
         Event event = eventRepository.findByUuid(uuid);
         if (event.leftBy(username)) {
             eventRepository.leftBy(username, uuid);
         }
-        return event;
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
     }
 
     @DeleteMapping(value = "/events")
@@ -143,7 +156,7 @@ public class EventController {
      * @param b The second object to compare.
      * @return -1 if a &lt; b, 0 if a == b, 1 if a &gt; b
      */
-    private int compareEventDates(Event a, Event b) {
+    private int compareEventDates(EventDTO a, EventDTO b) {
         if (a.getEventDateObject().isBefore(b.getEventDateObject())) {
             return -1;
         } else if (b.getEventDateObject().isBefore(a.getEventDateObject())) {

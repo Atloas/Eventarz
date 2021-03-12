@@ -1,7 +1,7 @@
 package com.agh.EventarzApplication;
 
 import com.agh.EventarzApplication.feignClients.DataClient;
-import com.agh.EventarzApplication.model.User;
+import com.agh.EventarzApplication.model.UserDTO;
 import com.agh.EventarzApplication.model.UserForm;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     @Retry(name = "registerNewUserAccount")
-    public User registerNewUserAccount(UserForm userForm)
+    public UserDTO registerNewUserAccount(UserForm userForm)
             throws UserAlreadyExistsException {
 
         if (checkIfUsernameExists(userForm.getUsername())) {

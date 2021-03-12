@@ -1,7 +1,7 @@
 package com.agh.EventarzApplication;
 
 import com.agh.EventarzApplication.feignClients.DataClient;
-import com.agh.EventarzApplication.model.User;
+import com.agh.EventarzApplication.model.UserDTO;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,15 +26,15 @@ public class EventarzUserDetailsService implements UserDetailsService {
     @Override
     @Retry(name = "loadUserByUsername")
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = dataClient.getUser(username);
+        UserDTO user = dataClient.getUser(username);
         if (user == null) {
             throw new UsernameNotFoundException("No user found for username " + username);
         }
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
-                user.getSecurityDetails().getPasswordHash(), true, true,
+                user.getSecurityDetailsDTO().getPasswordHash(), true, true,
                 true, true,
-                getAuthorities(user.getSecurityDetails().getRoles())
+                getAuthorities(user.getSecurityDetailsDTO().getRoles())
         );
     }
 

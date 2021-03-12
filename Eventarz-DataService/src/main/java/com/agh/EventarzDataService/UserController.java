@@ -1,7 +1,9 @@
 package com.agh.EventarzDataService;
 
 import com.agh.EventarzDataService.model.SecurityDetails;
+import com.agh.EventarzDataService.model.SecurityDetailsDTO;
 import com.agh.EventarzDataService.model.User;
+import com.agh.EventarzDataService.model.UserDTO;
 import com.agh.EventarzDataService.model.UserForm;
 import com.agh.EventarzDataService.repositories.UserRepository;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -25,9 +27,10 @@ public class UserController {
     @GetMapping("/users")
     @Transactional
     @Retry(name = "getUserByUsernameRetry")
-    User getUserByUsername(@RequestParam String username) {
+    UserDTO getUserByUsername(@RequestParam String username) {
         User user = userRepository.findByUsername(username);
-        return user;
+        UserDTO userDTO = user.createDTO();
+        return userDTO;
     }
 
     @GetMapping("/users/uuid")
@@ -41,27 +44,33 @@ public class UserController {
     @GetMapping("/users/security")
     @Transactional
     @Retry(name = "getSecurityDetailsRetry")
-    SecurityDetails getSecurityDetails(@RequestParam String username) {
+    SecurityDetailsDTO getSecurityDetails(@RequestParam String username) {
         SecurityDetails securityDetails = userRepository.findDetailsFor(username);
-        return securityDetails;
+        SecurityDetailsDTO securityDetailsDTO = securityDetails.createDTO();
+        return securityDetailsDTO;
     }
 
     @GetMapping("/users/regex")
     @Transactional
     @Retry(name = "getUsersByRegexRetry")
-    List<User> getUsersByRegex(@RequestParam String regex) {
+    List<UserDTO> getUsersByRegex(@RequestParam String regex) {
         List<User> users = userRepository.findByUsernameRegex(regex);
-        return users;
+        List<UserDTO> userDTOs = new ArrayList<>();
+        for (User user : users) {
+            userDTOs.add(user.createDTO());
+        }
+        return userDTOs;
     }
 
     @PostMapping("/users")
     @Transactional
     @Retry(name = "createUserRetry")
-    User createUser(@RequestBody UserForm userForm) {
+    UserDTO createUser(@RequestBody UserForm userForm) {
         SecurityDetails securityDetails = SecurityDetails.of(userForm.getPasswordHash(), userForm.getRoles());
-        User user = User.of(userForm.getUsername(), securityDetails, false, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        User user = User.of(userForm.getUsername(), securityDetails, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
         user = userRepository.save(user);
-        return user;
+        UserDTO userDTO = user.createDTO();
+        return userDTO;
     }
 
     @DeleteMapping("/users")
