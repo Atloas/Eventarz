@@ -34,6 +34,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	implementation 'org.springframework.cloud:spring-cloud-security'
 	implementation "io.github.resilience4j:resilience4j-all:${resilience4jVersion}"
 	implementation "io.github.resilience4j:resilience4j-spring-boot2:${resilience4jVersion}"
 	compileOnly "org.projectlombok:lombok:${lombokVersion}"
