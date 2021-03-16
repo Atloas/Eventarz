@@ -1,0 +1,15 @@
+server:
+  port: 8080
+  use-forward-headers: true
+  tomcat.protocol-header: X-Forwarded-Proto
+  tomcat.remote-ip-header: X-Forwarded-For
+spring:
+  application:
+    name: "eventarz-application"
+  cloud.loadbalancer.ribbon.enabled: false
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    preferIpAddress: true

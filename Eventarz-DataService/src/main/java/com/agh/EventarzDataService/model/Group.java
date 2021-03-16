@@ -1,15 +1,11 @@
 package com.agh.EventarzDataService.model;
 
-import com.agh.EventarzDataService.model.serializers.GroupSerializer;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Id;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
-import org.neo4j.ogm.annotation.Transient;
 import org.springframework.data.annotation.PersistenceConstructor;
 
 import java.time.LocalDateTime;
@@ -19,7 +15,6 @@ import java.util.List;
 import java.util.UUID;
 
 @NodeEntity("Group")
-@JsonSerialize(using = GroupSerializer.class)
 public class Group {
     @Id
     @GeneratedValue
@@ -36,58 +31,30 @@ public class Group {
     @Getter
     @Setter
     private String createdDate;
-    @Getter
-    @Setter
-    @Transient
-    private boolean stripped;
+
+    //TODO: Check if it owrks with private relationships. It should.
 
     @Getter
     @Setter
     @Relationship(type = "BELONGS_TO", direction = Relationship.INCOMING)
-    public List<User> members;
+    private List<User> members;
     @Getter
     @Setter
     @Relationship(type = "PUBLISHED_IN", direction = Relationship.INCOMING)
-    public List<Event> events;
+    private List<Event> events;
     @Getter
     @Setter
     @Relationship(type = "FOUNDED", direction = Relationship.INCOMING)
-    public User founder;
+    private User founder;
 
-    public Group(Long id, String uuid, String name, String description, String createdDate, boolean stripped, List<User> members, List<Event> events, User founder) {
-        this.id = id;
-        this.uuid = uuid;
-        this.name = name;
-        this.description = description;
-        this.createdDate = createdDate;
-        this.stripped = stripped;
-        if (stripped) {
-            this.members = null;
-            this.events = null;
-            this.founder = null;
-        } else {
-            if (members == null) {
-                this.members = new ArrayList<>();
-            } else {
-                this.members = members;
-            }
-            if (events == null) {
-                this.events = new ArrayList<>();
-            } else {
-                this.events = events;
-            }
-            this.founder = founder;
-        }
-    }
-
-    //All non-transient arguments constructor used by Neo4j
     @PersistenceConstructor
-    public Group (Long id, String uuid, String name, String description, String createdDate, List<User> members, List<Event> events, User founder) {
+    public Group(Long id, String uuid, String name, String description, String createdDate, List<User> members, List<Event> events, User founder) {
         this.id = id;
         this.uuid = uuid;
         this.name = name;
         this.description = description;
         this.createdDate = createdDate;
+
         if (members == null) {
             this.members = new ArrayList<>();
         } else {
@@ -101,15 +68,11 @@ public class Group {
         this.founder = founder;
     }
 
-    public Group(Group that) {
-        this(that.id, that.uuid, that.name, that.description, that.createdDate, that.stripped, that.members, that.events, that.founder);
-    }
-
-    public static Group of(String name, String description, boolean stripped, List<User> members, List<Event> events, User founder) {
+    public static Group of(String name, String description, List<User> members, List<Event> events, User founder) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         String createdDate = LocalDateTime.now().format(dtf);
         String uuid = UUID.randomUUID().toString();
-        return new Group(null, uuid, name, description, createdDate, stripped, members, events, founder);
+        return new Group(null, uuid, name, description, createdDate, members, events, founder);
     }
 
     public void joinedBy(User user) {
@@ -139,12 +102,42 @@ public class Group {
         return false;
     }
 
-    public Group withId(Long id) {
-        return new Group(id, this.uuid, this.name, this.description, this.createdDate, this.stripped, this.members, this.events, this.founder);
+    public GroupDTO createDTO() {
+        ArrayList<UserDTO> members = new ArrayList<>();
+        for (User member : this.members) {
+            members.add(member.createStrippedDTO());
+        }
+
+        ArrayList<EventDTO> events = new ArrayList<>();
+        for (Event event : this.events) {
+            events.add(event.createStrippedDTO());
+        }
+
+        return new GroupDTO(
+                this.id,
+                this.uuid,
+                this.name,
+                this.description,
+                this.createdDate,
+                false,
+                members,
+                events,
+                this.founder.createStrippedDTO()
+        );
     }
 
-    public Group createStrippedCopy() {
-        return new Group(this.id, this.uuid, this.name, this.description, this.createdDate, true, null, null, null);
+    public GroupDTO createStrippedDTO() {
+        return new GroupDTO(
+                this.id,
+                this.uuid,
+                this.name,
+                this.description,
+                this.createdDate,
+                true,
+                new ArrayList<>(),
+                new ArrayList<>(),
+                null
+        );
     }
 
     public String toString() {

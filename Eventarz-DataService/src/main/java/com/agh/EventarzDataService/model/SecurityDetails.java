@@ -8,6 +8,7 @@ import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Id;
 import org.neo4j.ogm.annotation.NodeEntity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor
@@ -29,7 +30,13 @@ public class SecurityDetails {
         return new SecurityDetails(null, passwordHash, roles);
     }
 
-    public SecurityDetails withId(Long id) {
-        return new SecurityDetails(id, this.passwordHash, this.roles);
+    public SecurityDetails(SecurityDetails that) {
+        this.id = that.id;
+        this.passwordHash = that.passwordHash;
+        this.roles = new ArrayList<>(that.roles);
+    }
+
+    public SecurityDetailsDTO createDTO() {
+        return new SecurityDetailsDTO(this.id, this.passwordHash, this.roles);
     }
 }

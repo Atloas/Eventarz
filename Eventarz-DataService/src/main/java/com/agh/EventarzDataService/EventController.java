@@ -16,12 +16,14 @@
 package com.agh.EventarzDataService;
 
 import com.agh.EventarzDataService.model.Event;
+import com.agh.EventarzDataService.model.EventDTO;
 import com.agh.EventarzDataService.model.EventForm;
 import com.agh.EventarzDataService.model.Group;
 import com.agh.EventarzDataService.model.User;
 import com.agh.EventarzDataService.repositories.EventRepository;
 import com.agh.EventarzDataService.repositories.GroupRepository;
 import com.agh.EventarzDataService.repositories.UserRepository;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,44 +53,59 @@ public class EventController {
 
     private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
 
-    @Transactional
     @GetMapping(value = "/events")
-    public Event getEventByUuid(@RequestParam String uuid) {
+    @Transactional
+    @Retry(name = "getEventByUuidRetry")
+    public EventDTO getEventByUuid(@RequestParam String uuid) {
         Event event = eventRepository.findByUuid(uuid);
-        //TODO: event not found
-        return event;
+        //TODO: event not found?
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
     }
 
-    @Transactional
     @GetMapping(value = "/events/my")
-    public List<Event> getMyEvents(@RequestParam String username) {
+    @Transactional
+    @Retry(name = "getMyEventsRetry")
+    public List<EventDTO> getMyEvents(@RequestParam String username) {
         List<Event> events = eventRepository.findMyEvents(username);
-        events.sort(this::compareEventDates);
-        return events;
+        List<EventDTO> eventDTOs = new ArrayList<>();
+        for (Event event : events) {
+            eventDTOs.add(event.createDTO());
+        }
+        eventDTOs.sort(this::compareEventDates);
+        return eventDTOs;
     }
 
-    @Transactional
     @GetMapping(value = "/events/regex")
-    public List<Event> getEventsRegex(@RequestParam String regex) {
+    @Transactional
+    @Retry(name = "getEventsRegexRetry")
+    public List<EventDTO> getEventsRegex(@RequestParam String regex) {
         List<Event> events = eventRepository.findByNameRegex(regex);
-        return events;
+        List<EventDTO> eventDTOs = new ArrayList<>();
+        for (Event event : events) {
+            eventDTOs.add(event.createDTO());
+        }
+        return eventDTOs;
     }
 
-    @Transactional
     @GetMapping(value = "/events/allowedToJoin")
+    @Transactional
+    @Retry(name = "checkIfUserAllowedToJoinRetry")
     public boolean checkIfUserAllowedToJoin(@RequestParam String uuid, @RequestParam String username) {
         return eventRepository.checkIfAllowedToJoinEvent(uuid, username);
     }
 
-    @Transactional
     @GetMapping(value = "/events/allowedToPublish")
+    @Transactional
+    @Retry(name = "checkIfUserAllowedToPublishRetry")
     public boolean checkIfUserAllowedToPublish(@RequestParam String groupUuid, @RequestParam String username) {
         return eventRepository.checkIfAllowedToPublishEvent(groupUuid, username);
     }
 
-    @Transactional
     @PostMapping(value = "/events")
-    public Event createEvent(@RequestBody EventForm eventForm) {
+    @Transactional
+    @Retry(name = "createEventRetry")
+    public EventDTO createEvent(@RequestBody EventForm eventForm) {
         //Assumes valid eventForm
         User organizer = userRepository.findByUsername(eventForm.getOrganizerUsername());
         Group group = groupRepository.findByUuid(eventForm.getGroupUuid());
@@ -97,31 +114,37 @@ public class EventController {
             newEvent.participatedBy(organizer);
         }
         newEvent = eventRepository.save(newEvent);
-        return newEvent;
+        EventDTO newEventDTO = newEvent.createDTO();
+        return newEventDTO;
     }
 
-    @Transactional
     @PutMapping(value = "/events/join")
-    public Event joinEvent(@RequestParam String uuid, @RequestParam String username) {
+    @Transactional
+    @Retry(name = "joinEventRetry")
+    public EventDTO joinEvent(@RequestParam String uuid, @RequestParam String username) {
         Event event = eventRepository.findByUuid(uuid);
         User user = userRepository.findByUsername(username);
         event.participatedBy(user);
         eventRepository.participatesIn(event.getUuid(), username);
-        return event;
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
     }
 
-    @Transactional
     @PutMapping(value = "/events/leave")
-    public Event leaveEvent(@RequestParam String uuid, @RequestParam String username) {
+    @Transactional
+    @Retry(name = "leaveEventRetry")
+    public EventDTO leaveEvent(@RequestParam String uuid, @RequestParam String username) {
         Event event = eventRepository.findByUuid(uuid);
         if (event.leftBy(username)) {
             eventRepository.leftBy(username, uuid);
         }
-        return event;
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
     }
 
-    @Transactional
     @DeleteMapping(value = "/events")
+    @Transactional
+    @Retry(name = "deleteEventRetry")
     public Long deleteEvent(@RequestParam String uuid) {
         return eventRepository.deleteByUuid(uuid);
     }
@@ -133,7 +156,7 @@ public class EventController {
      * @param b The second object to compare.
      * @return -1 if a &lt; b, 0 if a == b, 1 if a &gt; b
      */
-    private int compareEventDates(Event a, Event b) {
+    private int compareEventDates(EventDTO a, EventDTO b) {
         if (a.getEventDateObject().isBefore(b.getEventDateObject())) {
             return -1;
         } else if (b.getEventDateObject().isBefore(a.getEventDateObject())) {
