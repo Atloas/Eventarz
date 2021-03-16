@@ -9,7 +9,7 @@ spring:
       uri: "bolt://18.222.117.2:7687"
       username: "neo4j"
       password: "i-0fb5191d82a056e60"
-  cloud.loadbalancer.ribbon.enabled: false
+    loadbalancer.ribbon.enabled: false
 
 eureka:
   client:

@@ -1,9 +1,15 @@
 spring:
-  application.name: eventarz-zuul-proxy
+  application.name: "eventarz-zuul-proxy"
   cloud.loadbalancer.ribbon.enabled: false
 server:
   port: 8082
   use-forward-headers: true
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    preferIpAddress: true
 zuul:
   debug.request: true
   add-proxy-headers: true
