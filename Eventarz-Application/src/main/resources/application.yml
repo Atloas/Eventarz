@@ -7,6 +7,14 @@ spring:
   application:
     name: "eventarz-application"
   cloud.loadbalancer.ribbon.enabled: false
+  session:
+    store:
+      store-type: redis
+  redis:
+#    TODO: A way to automate setting this address, like with Eureka or something?
+    host: 127.0.0.1
+    password: # There is no password by default.
+    port: 6379
 eureka:
   client:
     serviceUrl:
