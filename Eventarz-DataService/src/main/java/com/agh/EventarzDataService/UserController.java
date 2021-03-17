@@ -29,6 +29,8 @@ public class UserController {
     @Retry(name = "getUserByUsernameRetry")
     UserDTO getUserByUsername(@RequestParam String username) {
         User user = userRepository.findByUsername(username);
+        if (user == null)
+            return null;
         UserDTO userDTO = user.createDTO();
         return userDTO;
     }
