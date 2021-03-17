@@ -7,6 +7,7 @@ import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GroupRepository extends Neo4jRepository<Group, Long> {
@@ -16,7 +17,7 @@ public interface GroupRepository extends Neo4jRepository<Group, Long> {
             "OPTIONAL MATCH (group)<-[publishedIn:PUBLISHED_IN]-(event:Event) " +
             "OPTIONAL MATCH (event)<-[participatesIn:PARTICIPATES_IN]-(participant:User) " +
             "RETURN group, founded, founder, belongsTo, member, publishedIn, event, participatesIn")
-    Group findByUuid(String uuid);
+    Optional<Group> findByUuid(String uuid);
 
     List<Group> findByNameRegex(String regex);
 
@@ -33,7 +34,7 @@ public interface GroupRepository extends Neo4jRepository<Group, Long> {
     void leftBy(String username, String groupUuid);
 
     @Query("MATCH (g:Group {uuid: $0}) OPTIONAL MATCH (g)<-[*]-(e:Event) DETACH DELETE g, e")
-    Long deleteByUuid(String uuid);
+    Optional<Long> deleteByUuid(String uuid);
 
     @Query("RETURN EXISTS((:Group {uuid: $0})<-[:FOUNDED]-(:User {username: $1}))")
     boolean isFounder(String uuid, String username);
