@@ -3,7 +3,7 @@ spring:
   cloud.loadbalancer.ribbon.enabled: false
 server:
   port: 8082
-  use-forward-headers: true
+#  use-forward-headers: true
 eureka:
   client:
     serviceUrl:
@@ -12,12 +12,11 @@ eureka:
     preferIpAddress: true
 zuul:
   debug.request: true
-  add-proxy-headers: true
+#  add-proxy-headers: true
   sensitive-headers:
   routes:
-    application:
+    eventarz-application:
       path: /**
       serviceId: eventarz-application
 
-      # TODO: Try org.springframework.cloud.netflix.zuul.filters.post.LocationRewriteFilter
-      # TODO: Or the freshest Stack Overflow link in "Praca magisterska"
+eventarz-application.ribbon.NFLoadBalancerRuleClassName: com.agh.EventarzZuulZerver.StickySessionRule

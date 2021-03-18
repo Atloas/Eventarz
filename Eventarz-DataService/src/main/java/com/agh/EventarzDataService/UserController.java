@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class UserController {
@@ -28,8 +29,11 @@ public class UserController {
     @Transactional
     @Retry(name = "getUserByUsernameRetry")
     UserDTO getUserByUsername(@RequestParam String username) {
-        User user = userRepository.findByUsername(username);
-        UserDTO userDTO = user.createDTO();
+        Optional<User> user = userRepository.findByUsername(username);
+        UserDTO userDTO = null;
+        if (user.isPresent()) {
+            userDTO = user.get().createDTO();
+        }
         return userDTO;
     }
 
@@ -37,16 +41,18 @@ public class UserController {
     @Transactional
     @Retry(name = "getUserUuidByUsernameRetry")
     String getUserUuidByUsername(@RequestParam String username) {
-        String uuid = userRepository.findUuidByUsername(username);
-        return uuid;
+        return userRepository.findUuidByUsername(username).get();
     }
 
     @GetMapping("/users/security")
     @Transactional
     @Retry(name = "getSecurityDetailsRetry")
     SecurityDetailsDTO getSecurityDetails(@RequestParam String username) {
-        SecurityDetails securityDetails = userRepository.findDetailsFor(username);
-        SecurityDetailsDTO securityDetailsDTO = securityDetails.createDTO();
+        Optional<SecurityDetails> securityDetails = userRepository.findDetailsFor(username);
+        SecurityDetailsDTO securityDetailsDTO = null;
+        if (securityDetails.isPresent()) {
+            securityDetailsDTO = securityDetails.get().createDTO();
+        }
         return securityDetailsDTO;
     }
 
@@ -77,7 +83,6 @@ public class UserController {
     @Transactional
     @Retry(name = "deleteUserRetry")
     Long deleteUser(@RequestParam String username) {
-        Long id = userRepository.deleteByUsername(username);
-        return id;
+        return userRepository.deleteByUsername(username).get();
     }
 }

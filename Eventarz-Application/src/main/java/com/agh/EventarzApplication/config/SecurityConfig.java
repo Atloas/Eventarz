@@ -1,6 +1,7 @@
 package com.agh.EventarzApplication.config;
 
 import com.agh.EventarzApplication.EventarzUserDetailsService;
+import com.agh.EventarzApplication.StickySessionCookieAuthenticationSuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -10,12 +11,17 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
-/**
- * Configures Spring Security.
- */
+import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 @Configuration
 @ComponentScan
 @EnableWebSecurity
@@ -24,23 +30,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private EventarzUserDetailsService userDetailsService;
 
-    /**
-     * Sets the use of a customized AuthenticationProvider.
-     *
-     * @param auth Spring Security's AuthenticationManagerBuilder.
-     * @throws Exception
-     */
     @Override
     protected void configure(final AuthenticationManagerBuilder auth) throws Exception {
         auth.authenticationProvider(authenticationProvider());
     }
 
-    /**
-     * Configures Spring Security to restrict access to pages depending on User authorities, defines a login and logout page.
-     *
-     * @param http HttpSecurity object.
-     * @throws Exception
-     */
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
         http
@@ -53,20 +47,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .permitAll()
                 .loginPage("/login")
                 .failureUrl("/login-error")
-                .defaultSuccessUrl("/home", true)
+                .defaultSuccessUrl("/home", false)
                 .and()
                 .logout()
                 .permitAll()
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login-logout")
+                .deleteCookies("Sticky-Session-Id")
         ;
     }
 
-    /**
-     * Returns a DaoAuthenticationProvider configured to use this application's custom UserDetailsService.
-     *
-     * @return A customized DaoAuthenticationProvider.
-     */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -75,11 +65,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return authProvider;
     }
 
-    /**
-     * Returns the password encoder to use.
-     *
-     * @return A BCrypt password encoder.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

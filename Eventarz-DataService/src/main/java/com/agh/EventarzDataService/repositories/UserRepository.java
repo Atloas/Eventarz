@@ -7,20 +7,21 @@ import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends Neo4jRepository<User, Long> {
-    User findByUuid(String uuid);
+    Optional<User> findByUuid(String uuid);
 
-    User findByUsername(String username);
+    Optional<User> findByUsername(String username);
 
     List<User> findByUsernameRegex(String regex);
 
-    Long deleteByUsername(String username);
+    Optional<Long> deleteByUsername(String username);
 
     @Query("MATCH (u:User {username: $0}) RETURN u.uuid")
-    String findUuidByUsername(String username);
+    Optional<String> findUuidByUsername(String username);
 
     @Query("MATCH (user:User {username: $0})<-[:DETAILS_OF]-(details:SECURITY_DETAILS) RETURN details")
-    SecurityDetails findDetailsFor(String username);
+    Optional<SecurityDetails> findDetailsFor(String username);
 }

@@ -6,15 +6,16 @@ import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface EventRepository extends Neo4jRepository<Event, Long> {
 
-    Event findByUuid(String uuid);
+    Optional<Event> findByUuid(String uuid);
 
     List<Event> findByNameRegex(String regex);
 
-    Long deleteByUuid(String uuid);
+    Optional<Long> deleteByUuid(String uuid);
 
     @Query("MATCH (u1:User {username: $0})-[r1]->(e:Event)-[r2]->(g:Group) OPTIONAL MATCH (e)<-[r3]-(u2:User) RETURN u1, u2, r1, r2, r3, e, g")
     List<Event> findMyEvents(String username);

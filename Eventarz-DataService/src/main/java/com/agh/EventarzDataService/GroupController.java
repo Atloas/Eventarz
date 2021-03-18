@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class GroupController {
@@ -54,9 +55,11 @@ public class GroupController {
     @Transactional
     @Retry(name = "getGroupByUuidRetry")
     public GroupDTO getGroupByUuid(@RequestParam String uuid) {
-        Group group = groupRepository.findByUuid(uuid);
-        GroupDTO groupDTO = group.createDTO();
-        //TODO: group not found
+        Optional<Group> group = groupRepository.findByUuid(uuid);
+        GroupDTO groupDTO = null;
+        if (group.isPresent()) {
+            groupDTO = group.get().createDTO();
+        }
         return groupDTO;
     }
 
@@ -88,26 +91,34 @@ public class GroupController {
     @Transactional
     @Retry(name = "createGroupRetry")
     public GroupDTO createGroup(@RequestBody GroupForm groupForm) {
-        //Assumes valid groupForm
-        User founder = userRepository.findByUsername(groupForm.getFounderUsername());
-        Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new ArrayList<>(), new ArrayList<>(), founder);
-        newGroup = groupRepository.save(newGroup);
-        //TODO: Is this necessary?
-        groupRepository.belongsTo(newGroup.getUuid(), founder.getUsername());
-        GroupDTO newGroupDTO = newGroup.createDTO();
-        return newGroupDTO;
+        Optional<User> founder = userRepository.findByUsername(groupForm.getFounderUsername());
+        if (founder.isPresent()) {
+            Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new ArrayList<>(), new ArrayList<>(), founder.get());
+            newGroup = groupRepository.save(newGroup);
+            //TODO: Is this necessary?
+            groupRepository.belongsTo(newGroup.getUuid(), founder.get().getUsername());
+            GroupDTO newGroupDTO = newGroup.createDTO();
+            return newGroupDTO;
+        } else {
+            //TODO: Some error handling or reporting?
+            return null;
+        }
     }
 
     @PutMapping(value = "/groups/join")
     @Transactional
     @Retry(name = "joinGroupRetry")
     public GroupDTO joinGroup(@RequestParam String uuid, @RequestParam String username) {
-        User user = userRepository.findByUsername(username);
-        Group group = groupRepository.findByUuid(uuid);
-        group.joinedBy(user);
-        //TODO: Is this necessary?
-        groupRepository.belongsTo(uuid, username);
-        GroupDTO groupDTO = group.createDTO();
+        //TODO: Parallelize this and others like this?
+        Optional<User> user = userRepository.findByUsername(username);
+        Optional<Group> group = groupRepository.findByUuid(uuid);
+        GroupDTO groupDTO = null;
+        if (user.isPresent() && group.isPresent()) {
+            group.get().joinedBy(user.get());
+            //TODO: Is this necessary?
+            groupRepository.belongsTo(uuid, username);
+            groupDTO = group.get().createDTO();
+        }
         return groupDTO;
     }
 
@@ -115,17 +126,21 @@ public class GroupController {
     @Transactional
     @Retry(name = "leaveGroupRetry")
     public GroupDTO leaveGroup(@RequestParam String uuid, @RequestParam String username) {
-        User user = userRepository.findByUsername(username);
-        Group group = groupRepository.findByUuid(uuid);
-        group.leftBy(user.getUsername());
-        //TODO: Is this necessary?
-        groupRepository.leftBy(user.getUsername(), uuid);
-        if (group.getMembers().size() == 0) {
-            groupRepository.deleteByUuid(group.getUuid());
-            //TODO: Should this be like this?
-            return null;
+        Optional<User> user = userRepository.findByUsername(username);
+        Optional<Group> group = groupRepository.findByUuid(uuid);
+        GroupDTO groupDTO = null;
+        if (user.isPresent() && group.isPresent()) {
+            //TODO: A variable in stead of constant gets
+            group.get().leftBy(user.get().getUsername());
+            //TODO: Is this necessary?
+            groupRepository.leftBy(user.get().getUsername(), uuid);
+            if (group.get().getMembers().size() == 0) {
+                groupRepository.deleteByUuid(group.get().getUuid());
+                //TODO: Should this be like this?
+                return null;
+            }
+            groupDTO = group.get().createDTO();
         }
-        GroupDTO groupDTO = group.createDTO();
         return groupDTO;
     }
 
@@ -133,17 +148,13 @@ public class GroupController {
     @Transactional
     @Retry(name = "deleteGroupRetry")
     public Long deleteGroup(@RequestParam String uuid, @RequestParam String username) {
-        if (groupRepository.isFounder(uuid, username)) {
-            return groupRepository.deleteByUuid(uuid);
-        }
-        //TODO: Error handling
-        return (long) -1;
+        return groupRepository.deleteByUuid(uuid).get();
     }
 
     @DeleteMapping(value = "/admin/groups")
     @Transactional
     @Retry(name = "adminDeleteGroupRetry")
     public Long adminDeleteGroup(@RequestParam String uuid) {
-        return groupRepository.deleteByUuid(uuid);
+        return groupRepository.deleteByUuid(uuid).get();
     }
 }

@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 //TODO: handle event expiration
 
@@ -57,9 +58,12 @@ public class EventController {
     @Transactional
     @Retry(name = "getEventByUuidRetry")
     public EventDTO getEventByUuid(@RequestParam String uuid) {
-        Event event = eventRepository.findByUuid(uuid);
+        Optional<Event> event = eventRepository.findByUuid(uuid);
+        EventDTO eventDTO = null;
+        if (event.isPresent()) {
+            eventDTO = event.get().createDTO();
+        }
         //TODO: event not found?
-        EventDTO eventDTO = event.createDTO();
         return eventDTO;
     }
 
@@ -107,26 +111,35 @@ public class EventController {
     @Retry(name = "createEventRetry")
     public EventDTO createEvent(@RequestBody EventForm eventForm) {
         //Assumes valid eventForm
-        User organizer = userRepository.findByUsername(eventForm.getOrganizerUsername());
-        Group group = groupRepository.findByUuid(eventForm.getGroupUuid());
-        Event newEvent = Event.of(eventForm.getName(), eventForm.getDescription(), eventForm.getMaxParticipants(), eventForm.getEventDate(), organizer, new ArrayList<>(), group);
-        if (eventForm.isParticipate()) {
-            newEvent.participatedBy(organizer);
+        Optional<User> organizer = userRepository.findByUsername(eventForm.getOrganizerUsername());
+        Optional<Group> group = groupRepository.findByUuid(eventForm.getGroupUuid());
+        if (organizer.isPresent() && group.isPresent()) {
+            Event newEvent = null;
+            newEvent = Event.of(eventForm.getName(), eventForm.getDescription(), eventForm.getMaxParticipants(), eventForm.getEventDate(), organizer.get(), new ArrayList<>(), group.get());
+            if (eventForm.isParticipate()) {
+                newEvent.participatedBy(organizer.get());
+            }
+            newEvent = eventRepository.save(newEvent);
+            EventDTO newEventDTO = newEvent.createDTO();
+            return newEventDTO;
+        } else {
+            //TODO: Some error handling or reporting?
+            return null;
         }
-        newEvent = eventRepository.save(newEvent);
-        EventDTO newEventDTO = newEvent.createDTO();
-        return newEventDTO;
     }
 
     @PutMapping(value = "/events/join")
     @Transactional
     @Retry(name = "joinEventRetry")
     public EventDTO joinEvent(@RequestParam String uuid, @RequestParam String username) {
-        Event event = eventRepository.findByUuid(uuid);
-        User user = userRepository.findByUsername(username);
-        event.participatedBy(user);
-        eventRepository.participatesIn(event.getUuid(), username);
-        EventDTO eventDTO = event.createDTO();
+        Optional<Event> event = eventRepository.findByUuid(uuid);
+        Optional<User> user = userRepository.findByUsername(username);
+        EventDTO eventDTO = null;
+        if (event.isPresent() && user.isPresent()) {
+            event.get().participatedBy(user.get());
+            eventRepository.participatesIn(event.get().getUuid(), username);
+            eventDTO = event.get().createDTO();
+        }
         return eventDTO;
     }
 
@@ -134,11 +147,14 @@ public class EventController {
     @Transactional
     @Retry(name = "leaveEventRetry")
     public EventDTO leaveEvent(@RequestParam String uuid, @RequestParam String username) {
-        Event event = eventRepository.findByUuid(uuid);
-        if (event.leftBy(username)) {
-            eventRepository.leftBy(username, uuid);
+        Optional<Event> event = eventRepository.findByUuid(uuid);
+        EventDTO eventDTO = null;
+        if (event.isPresent()) {
+            if (event.get().leftBy(username)) {
+                eventRepository.leftBy(username, uuid);
+            }
+            eventDTO = event.get().createDTO();
         }
-        EventDTO eventDTO = event.createDTO();
         return eventDTO;
     }
 
@@ -146,7 +162,7 @@ public class EventController {
     @Transactional
     @Retry(name = "deleteEventRetry")
     public Long deleteEvent(@RequestParam String uuid) {
-        return eventRepository.deleteByUuid(uuid);
+        return eventRepository.deleteByUuid(uuid).get();
     }
 
     /**
