@@ -20,3 +20,10 @@ zuul:
       serviceId: eventarz-application
 
 eventarz-application.ribbon.NFLoadBalancerRuleClassName: com.agh.EventarzZuulZerver.StickySessionRule
+
+logging:
+  level:
+    org:
+      springframework:
+        cloud:
+          netflix: trace
