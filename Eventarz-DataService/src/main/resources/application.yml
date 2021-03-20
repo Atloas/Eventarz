@@ -1,5 +1,7 @@
+#Default local configuration
+
 server:
-  port: 8083
+  port: 8090
 
 spring:
   application:
@@ -14,7 +16,7 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+      defaultZone: http://localhost:8761/eureka
   instance:
     preferIpAddress: true
 
@@ -26,4 +28,4 @@ logging:
           drivers:
             bolt:
               request:
-                BoltRequest=DEBUG:
+                BoltRequest: DEBUG

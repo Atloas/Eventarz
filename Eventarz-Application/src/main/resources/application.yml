@@ -1,15 +1,20 @@
+# Default local configuration, overwritten from config server
+
 server:
-  port: 8080
+  port: 8089
   use-forward-headers: true
-  tomcat.protocol-header: X-Forwarded-Proto
-  tomcat.remote-ip-header: X-Forwarded-For
+  tomcat:
+    protocol-header: X-Forwarded-Proto
+    remote-ip-header: X-Forwarded-For
+
 spring:
   application:
     name: "eventarz-application"
   cloud.loadbalancer.ribbon.enabled: false
+
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+      defaultZone: http://localhost:8761/eureka
   instance:
     preferIpAddress: true
