@@ -97,8 +97,7 @@ public class GroupController {
             newGroup = groupRepository.save(newGroup);
             //TODO: Is this necessary?
             groupRepository.belongsTo(newGroup.getUuid(), founder.get().getUsername());
-            GroupDTO newGroupDTO = newGroup.createDTO();
-            return newGroupDTO;
+            return newGroup.createDTO();
         } else {
             //TODO: Some error handling or reporting?
             return null;
@@ -148,13 +147,13 @@ public class GroupController {
     @Transactional
     @Retry(name = "deleteGroupRetry")
     public Long deleteGroup(@RequestParam String uuid, @RequestParam String username) {
-        return groupRepository.deleteByUuid(uuid).get();
+        return groupRepository.deleteByUuid(uuid).orElse(null);
     }
 
     @DeleteMapping(value = "/admin/groups")
     @Transactional
     @Retry(name = "adminDeleteGroupRetry")
     public Long adminDeleteGroup(@RequestParam String uuid) {
-        return groupRepository.deleteByUuid(uuid).get();
+        return groupRepository.deleteByUuid(uuid).orElse(null);
     }
 }

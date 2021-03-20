@@ -23,7 +23,7 @@ import java.util.Optional;
 @RestController
 public class UserController {
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @GetMapping("/users")
     @Transactional
@@ -41,7 +41,7 @@ public class UserController {
     @Transactional
     @Retry(name = "getUserUuidByUsernameRetry")
     String getUserUuidByUsername(@RequestParam String username) {
-        return userRepository.findUuidByUsername(username).get();
+        return userRepository.findUuidByUsername(username).orElse(null);
     }
 
     @GetMapping("/users/security")
@@ -75,14 +75,13 @@ public class UserController {
         SecurityDetails securityDetails = SecurityDetails.of(userForm.getPasswordHash(), userForm.getRoles());
         User user = User.of(userForm.getUsername(), securityDetails, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
         user = userRepository.save(user);
-        UserDTO userDTO = user.createDTO();
-        return userDTO;
+        return user.createDTO();
     }
 
     @DeleteMapping("/users")
     @Transactional
     @Retry(name = "deleteUserRetry")
     Long deleteUser(@RequestParam String username) {
-        return userRepository.deleteByUsername(username).get();
+        return userRepository.deleteByUsername(username).orElse(null);
     }
 }

@@ -120,8 +120,7 @@ public class EventController {
                 newEvent.participatedBy(organizer.get());
             }
             newEvent = eventRepository.save(newEvent);
-            EventDTO newEventDTO = newEvent.createDTO();
-            return newEventDTO;
+            return newEvent.createDTO();
         } else {
             //TODO: Some error handling or reporting?
             return null;
@@ -162,7 +161,7 @@ public class EventController {
     @Transactional
     @Retry(name = "deleteEventRetry")
     public Long deleteEvent(@RequestParam String uuid) {
-        return eventRepository.deleteByUuid(uuid).get();
+        return eventRepository.deleteByUuid(uuid).orElse(null);
     }
 
     /**
