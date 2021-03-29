@@ -1,6 +1,0 @@
-spring:
-  application:
-    name: resilience4j
-
-server:
-  port: 8080
