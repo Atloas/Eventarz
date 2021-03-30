@@ -1,7 +1,7 @@
 # Default local configuration, overwritten from config server
 
 server:
-  port: 8089
+  port: 8080
   use-forward-headers: true
   tomcat:
     protocol-header: X-Forwarded-Proto

@@ -53,7 +53,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .permitAll()
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login-logout")
-                .deleteCookies("Sticky-Session-Id")
+                .deleteCookies("EVENTARZ-APPLICATION-StickySessionRule")
         ;
     }
 
