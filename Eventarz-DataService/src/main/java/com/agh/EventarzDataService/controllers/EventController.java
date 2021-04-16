@@ -72,14 +72,16 @@ public class EventController {
     @Transactional
     @Retry(name = "checkIfUserAllowedToJoinRetry")
     public boolean checkIfUserAllowedToJoin(@RequestParam String uuid, @RequestParam String username) {
-        return eventService.checkIfUserAllowedToJoin(uuid, username);
+        boolean allowed = eventService.checkIfUserAllowedToJoin(uuid, username);
+        return allowed;
     }
 
     @GetMapping(value = "/events/allowedToPublish")
     @Transactional
     @Retry(name = "checkIfUserAllowedToPublishRetry")
     public boolean checkIfUserAllowedToPublish(@RequestParam String groupUuid, @RequestParam String username) {
-        return eventService.checkIfUserAllowedToPublish(groupUuid, username);
+        boolean allowed = eventService.checkIfUserAllowedToPublish(groupUuid, username);
+        return allowed;
     }
 
     @PostMapping(value = "/events")
