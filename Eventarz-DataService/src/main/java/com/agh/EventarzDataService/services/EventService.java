@@ -1,19 +1,4 @@
-/*
- * Copyright 2002-2016 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package com.agh.EventarzDataService;
+package com.agh.EventarzDataService.services;
 
 import com.agh.EventarzDataService.model.Event;
 import com.agh.EventarzDataService.model.EventDTO;
@@ -23,27 +8,15 @@ import com.agh.EventarzDataService.model.User;
 import com.agh.EventarzDataService.repositories.EventRepository;
 import com.agh.EventarzDataService.repositories.GroupRepository;
 import com.agh.EventarzDataService.repositories.UserRepository;
-import io.github.resilience4j.retry.annotation.Retry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-//TODO: handle event expiration
-
-@RestController
-public class EventController {
+@Service
+public class EventService {
 
     @Autowired
     private EventRepository eventRepository;
@@ -52,25 +25,16 @@ public class EventController {
     @Autowired
     private GroupRepository groupRepository;
 
-    private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
-
-    @GetMapping(value = "/events")
-    @Transactional
-    @Retry(name = "getEventByUuidRetry")
-    public EventDTO getEventByUuid(@RequestParam String uuid) {
+    public EventDTO getEventByUuid(String uuid) {
         Optional<Event> event = eventRepository.findByUuid(uuid);
         EventDTO eventDTO = null;
         if (event.isPresent()) {
             eventDTO = event.get().createDTO();
         }
-        //TODO: event not found?
         return eventDTO;
     }
 
-    @GetMapping(value = "/events/my")
-    @Transactional
-    @Retry(name = "getMyEventsRetry")
-    public List<EventDTO> getMyEvents(@RequestParam String username) {
+    public List<EventDTO> getMyEvents(String username) {
         List<Event> events = eventRepository.findMyEvents(username);
         List<EventDTO> eventDTOs = new ArrayList<>();
         for (Event event : events) {
@@ -80,10 +44,7 @@ public class EventController {
         return eventDTOs;
     }
 
-    @GetMapping(value = "/events/regex")
-    @Transactional
-    @Retry(name = "getEventsRegexRetry")
-    public List<EventDTO> getEventsRegex(@RequestParam String regex) {
+    public List<EventDTO> getEventsRegex(String regex) {
         List<Event> events = eventRepository.findByNameRegex(regex);
         List<EventDTO> eventDTOs = new ArrayList<>();
         for (Event event : events) {
@@ -92,24 +53,15 @@ public class EventController {
         return eventDTOs;
     }
 
-    @GetMapping(value = "/events/allowedToJoin")
-    @Transactional
-    @Retry(name = "checkIfUserAllowedToJoinRetry")
-    public boolean checkIfUserAllowedToJoin(@RequestParam String uuid, @RequestParam String username) {
+    public boolean checkIfUserAllowedToJoin(String uuid, String username) {
         return eventRepository.checkIfAllowedToJoinEvent(uuid, username);
     }
 
-    @GetMapping(value = "/events/allowedToPublish")
-    @Transactional
-    @Retry(name = "checkIfUserAllowedToPublishRetry")
-    public boolean checkIfUserAllowedToPublish(@RequestParam String groupUuid, @RequestParam String username) {
+    public boolean checkIfUserAllowedToPublish(String groupUuid, String username) {
         return eventRepository.checkIfAllowedToPublishEvent(groupUuid, username);
     }
 
-    @PostMapping(value = "/events")
-    @Transactional
-    @Retry(name = "createEventRetry")
-    public EventDTO createEvent(@RequestBody EventForm eventForm) {
+    public EventDTO createEvent(EventForm eventForm) {
         //Assumes valid eventForm
         Optional<User> organizer = userRepository.findByUsername(eventForm.getOrganizerUsername());
         Optional<Group> group = groupRepository.findByUuid(eventForm.getGroupUuid());
@@ -127,10 +79,7 @@ public class EventController {
         }
     }
 
-    @PutMapping(value = "/events/join")
-    @Transactional
-    @Retry(name = "joinEventRetry")
-    public EventDTO joinEvent(@RequestParam String uuid, @RequestParam String username) {
+    public EventDTO joinEvent(String uuid, String username) {
         Optional<Event> event = eventRepository.findByUuid(uuid);
         Optional<User> user = userRepository.findByUsername(username);
         EventDTO eventDTO = null;
@@ -142,10 +91,7 @@ public class EventController {
         return eventDTO;
     }
 
-    @PutMapping(value = "/events/leave")
-    @Transactional
-    @Retry(name = "leaveEventRetry")
-    public EventDTO leaveEvent(@RequestParam String uuid, @RequestParam String username) {
+    public EventDTO leaveEvent(String uuid, String username) {
         Optional<Event> event = eventRepository.findByUuid(uuid);
         EventDTO eventDTO = null;
         if (event.isPresent()) {
@@ -157,10 +103,7 @@ public class EventController {
         return eventDTO;
     }
 
-    @DeleteMapping(value = "/events")
-    @Transactional
-    @Retry(name = "deleteEventRetry")
-    public Long deleteEvent(@RequestParam String uuid) {
+    public Long deleteEvent(String uuid) {
         return eventRepository.deleteByUuid(uuid).orElse(null);
     }
 
@@ -180,6 +123,4 @@ public class EventController {
             return 0;
         }
     }
-
-
 }

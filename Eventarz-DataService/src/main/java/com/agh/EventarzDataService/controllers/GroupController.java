@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.agh.EventarzDataService;
+package com.agh.EventarzDataService.controllers;
 
-import com.agh.EventarzDataService.model.Group;
+import com.agh.EventarzDataService.EventarzDataServiceApplication;
 import com.agh.EventarzDataService.model.GroupDTO;
 import com.agh.EventarzDataService.model.GroupForm;
-import com.agh.EventarzDataService.model.User;
-import com.agh.EventarzDataService.repositories.EventRepository;
-import com.agh.EventarzDataService.repositories.GroupRepository;
-import com.agh.EventarzDataService.repositories.UserRepository;
+import com.agh.EventarzDataService.services.GroupService;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,19 +32,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 public class GroupController {
 
     @Autowired
-    private EventRepository eventRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private GroupRepository groupRepository;
+    private GroupService groupService;
 
     private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
 
@@ -55,11 +46,7 @@ public class GroupController {
     @Transactional
     @Retry(name = "getGroupByUuidRetry")
     public GroupDTO getGroupByUuid(@RequestParam String uuid) {
-        Optional<Group> group = groupRepository.findByUuid(uuid);
-        GroupDTO groupDTO = null;
-        if (group.isPresent()) {
-            groupDTO = group.get().createDTO();
-        }
+        GroupDTO groupDTO = groupService.getGroupByUuid(uuid);
         return groupDTO;
     }
 
@@ -67,11 +54,7 @@ public class GroupController {
     @Transactional
     @Retry(name = "getMyGroupsRetry")
     public List<GroupDTO> getMyGroups(@RequestParam String username) {
-        List<Group> groups = groupRepository.findMyGroups(username);
-        List<GroupDTO> groupDTOs = new ArrayList<>();
-        for (Group group : groups) {
-            groupDTOs.add(group.createDTO());
-        }
+        List<GroupDTO> groupDTOs = groupService.getMyGroups(username);
         return groupDTOs;
     }
 
@@ -79,11 +62,7 @@ public class GroupController {
     @Transactional
     @Retry(name = "getGroupsRegexRetry")
     public List<GroupDTO> getGroupsRegex(@RequestParam String regex) {
-        List<Group> groups = groupRepository.findByNameRegex(regex);
-        List<GroupDTO> groupDTOs = new ArrayList<>();
-        for (Group group : groups) {
-            groupDTOs.add(group.createDTO());
-        }
+        List<GroupDTO> groupDTOs = groupService.getGroupsRegex(regex);
         return groupDTOs;
     }
 
@@ -91,33 +70,15 @@ public class GroupController {
     @Transactional
     @Retry(name = "createGroupRetry")
     public GroupDTO createGroup(@RequestBody GroupForm groupForm) {
-        Optional<User> founder = userRepository.findByUsername(groupForm.getFounderUsername());
-        if (founder.isPresent()) {
-            Group newGroup = Group.of(groupForm.getName(), groupForm.getDescription(), new ArrayList<>(), new ArrayList<>(), founder.get());
-            newGroup = groupRepository.save(newGroup);
-            //TODO: Is this necessary?
-            groupRepository.belongsTo(newGroup.getUuid(), founder.get().getUsername());
-            return newGroup.createDTO();
-        } else {
-            //TODO: Some error handling or reporting?
-            return null;
-        }
+        GroupDTO groupDTO = groupService.createGroup(groupForm);
+        return groupDTO;
     }
 
     @PutMapping(value = "/groups/join")
     @Transactional
     @Retry(name = "joinGroupRetry")
     public GroupDTO joinGroup(@RequestParam String uuid, @RequestParam String username) {
-        //TODO: Parallelize this and others like this?
-        Optional<User> user = userRepository.findByUsername(username);
-        Optional<Group> group = groupRepository.findByUuid(uuid);
-        GroupDTO groupDTO = null;
-        if (user.isPresent() && group.isPresent()) {
-            group.get().joinedBy(user.get());
-            //TODO: Is this necessary?
-            groupRepository.belongsTo(uuid, username);
-            groupDTO = group.get().createDTO();
-        }
+        GroupDTO groupDTO = groupService.joinGroup(uuid, username);
         return groupDTO;
     }
 
@@ -125,21 +86,7 @@ public class GroupController {
     @Transactional
     @Retry(name = "leaveGroupRetry")
     public GroupDTO leaveGroup(@RequestParam String uuid, @RequestParam String username) {
-        Optional<User> user = userRepository.findByUsername(username);
-        Optional<Group> group = groupRepository.findByUuid(uuid);
-        GroupDTO groupDTO = null;
-        if (user.isPresent() && group.isPresent()) {
-            //TODO: A variable in stead of constant gets
-            group.get().leftBy(user.get().getUsername());
-            //TODO: Is this necessary?
-            groupRepository.leftBy(user.get().getUsername(), uuid);
-            if (group.get().getMembers().size() == 0) {
-                groupRepository.deleteByUuid(group.get().getUuid());
-                //TODO: Should this be like this?
-                return null;
-            }
-            groupDTO = group.get().createDTO();
-        }
+        GroupDTO groupDTO = groupService.leaveGroup(uuid, username);
         return groupDTO;
     }
 
@@ -147,13 +94,15 @@ public class GroupController {
     @Transactional
     @Retry(name = "deleteGroupRetry")
     public Long deleteGroup(@RequestParam String uuid, @RequestParam String username) {
-        return groupRepository.deleteByUuid(uuid).orElse(null);
+        Long id = groupService.deleteGroup(uuid, username);
+        return id;
     }
 
     @DeleteMapping(value = "/admin/groups")
     @Transactional
     @Retry(name = "adminDeleteGroupRetry")
     public Long adminDeleteGroup(@RequestParam String uuid) {
-        return groupRepository.deleteByUuid(uuid).orElse(null);
+        Long id = groupService.adminDeleteGroup(uuid);
+        return id;
     }
 }
