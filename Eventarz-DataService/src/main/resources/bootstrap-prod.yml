@@ -1,4 +1,4 @@
 spring:
   cloud:
     config:
-      uri: http://ec2-3-141-5-166.us-east-2.compute.amazonaws.com:8088
+      uri: http://ec2-18-116-29-150.us-east-2.compute.amazonaws.com:8088
