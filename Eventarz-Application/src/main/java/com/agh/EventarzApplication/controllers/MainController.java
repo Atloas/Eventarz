@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.agh.EventarzApplication.web;
+package com.agh.EventarzApplication.controllers;
 
 import com.agh.EventarzApplication.EventarzApplication;
-import com.agh.EventarzApplication.UserAlreadyExistsException;
-import com.agh.EventarzApplication.UserService;
+import com.agh.EventarzApplication.exceptions.UserAlreadyExistsException;
+import com.agh.EventarzApplication.services.UserService;
 import com.agh.EventarzApplication.feignClients.DataClient;
 import com.agh.EventarzApplication.model.EventDTO;
 import com.agh.EventarzApplication.model.EventForm;
@@ -35,7 +35,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.security.Principal;
 import java.time.LocalDateTime;

@@ -1,6 +1,3 @@
 spring:
-  cloud:
-    config:
-      uri: http://ec2-3-141-5-166.us-east-2.compute.amazonaws.com:8088
   application:
     name: "eventarz-application"

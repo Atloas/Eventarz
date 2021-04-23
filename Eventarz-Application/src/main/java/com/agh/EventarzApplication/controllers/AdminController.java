@@ -1,4 +1,4 @@
-package com.agh.EventarzApplication.web;
+package com.agh.EventarzApplication.controllers;
 
 import com.agh.EventarzApplication.EventarzApplication;
 import com.agh.EventarzApplication.feignClients.DataClient;

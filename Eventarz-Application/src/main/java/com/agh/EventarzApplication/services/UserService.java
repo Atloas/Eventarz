@@ -1,5 +1,6 @@
-package com.agh.EventarzApplication;
+package com.agh.EventarzApplication.services;
 
+import com.agh.EventarzApplication.exceptions.UserAlreadyExistsException;
 import com.agh.EventarzApplication.feignClients.DataClient;
 import com.agh.EventarzApplication.model.UserDTO;
 import com.agh.EventarzApplication.model.UserForm;

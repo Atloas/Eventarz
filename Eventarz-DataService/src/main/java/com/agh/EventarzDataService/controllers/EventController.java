@@ -16,6 +16,7 @@
 package com.agh.EventarzDataService.controllers;
 
 import com.agh.EventarzDataService.EventarzDataServiceApplication;
+import com.agh.EventarzDataService.model.Event;
 import com.agh.EventarzDataService.model.EventDTO;
 import com.agh.EventarzDataService.model.EventForm;
 import com.agh.EventarzDataService.services.EventService;
@@ -43,6 +44,12 @@ public class EventController {
     private EventService eventService;
 
     private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
+
+    @GetMapping("/test")
+    public EventDTO getTestEvent() {
+        EventDTO eventDTO = new EventDTO(null, "2", "3", "4", 5, "6", null, "7", null, true, 0, true, null, null, null);
+        return eventDTO;
+    }
 
     @GetMapping(value = "/events")
     @Transactional
