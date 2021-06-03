@@ -89,7 +89,7 @@ class App extends React.Component {
       content = (
         <Switch>
           <Route path="/register" component={RegisterView} />
-          <Route exact path="/" component={LoginView} />
+          <Route path="/" component={LoginView} />
         </Switch>
       )
     }

@@ -24,12 +24,26 @@ class UserDetailsView extends React.Component {
 
   handleFetchErrors(response) {
     if (!response.ok) {
-      var message = {
-        type: "error",
-        text: "Something went wrong!"
-      };
-      this.props.setMessage(message);
-      throw Error(message.text);
+      return response.json().then(body => {
+        var message = {
+          type: "error",
+          text: ""
+        };
+        switch (body.status) {
+          // case 403:
+          //   // TODO token expiration
+          //   break;
+          case 404:
+            message.text = body.message;
+            break;
+          default:
+            message.text = "Something went wrong!";
+            break;
+        }
+        this.setState({ reloading: false });
+        this.props.setMessage(message);
+        throw Error(message.text);
+      })
     }
     return response;
   }

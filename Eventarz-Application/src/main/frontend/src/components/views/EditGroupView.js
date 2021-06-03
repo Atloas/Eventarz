@@ -47,23 +47,26 @@ class EditGroupView extends React.Component {
 
   handleFetchErrors(response) {
     if (!response.ok) {
-      var message = {
-        type: "error",
-        text: ""
-      };
-      switch (response.status) {
-        case 400:
-          message.text = "Invalid form data!";
-          break;
-        // case 403: TODO: Handle token expiration?
-        //   message.text = "Session expired!";
-        //   break;
-        default:
-          message.text = "Something went wrong!";
-      }
-      this.setState({ reloading: false });
-      this.props.setMessage(message);
-      throw Error(message.text);
+      return response.json().then(body => {
+        var message = {
+          type: "error",
+          text: ""
+        };
+        switch (body.status) {
+          case 400:
+            message.text = body.message;
+            break;
+          // case 403:
+          //   // TODO token expiration
+          //   break;
+          default:
+            message.text = "Something went wrong!";
+            break;
+        }
+        this.setState({ reloading: false });
+        this.props.setMessage(message);
+        throw Error(message.text);
+      })
     }
     return response;
   }
