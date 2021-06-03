@@ -32,8 +32,6 @@ public class Group {
     @Setter
     private String createdDate;
 
-    //TODO: Check if it owrks with private relationships. It should.
-
     @Getter
     @Setter
     @Relationship(type = "BELONGS_TO", direction = Relationship.INCOMING)
@@ -68,8 +66,20 @@ public class Group {
         this.founder = founder;
     }
 
+    public Group (GroupForm groupForm, User founder) {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        String createdDate = LocalDateTime.now().format(dtf);
+        this.uuid = UUID.randomUUID().toString();
+        this.name = groupForm.getName();
+        this.description = groupForm.getDescription();
+        this.createdDate = createdDate;
+        this.members = new ArrayList<>();
+        this.events = new ArrayList<>();
+        this.founder = founder;
+    }
+
     public static Group of(String name, String description, List<User> members, List<Event> events, User founder) {
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         String createdDate = LocalDateTime.now().format(dtf);
         String uuid = UUID.randomUUID().toString();
         return new Group(null, uuid, name, description, createdDate, members, events, founder);
@@ -114,11 +124,12 @@ public class Group {
         }
 
         return new GroupDTO(
-                this.id,
                 this.uuid,
                 this.name,
                 this.description,
                 this.createdDate,
+                this.members.size(),
+                this.events.size(),
                 false,
                 members,
                 events,
@@ -128,11 +139,12 @@ public class Group {
 
     public GroupDTO createStrippedDTO() {
         return new GroupDTO(
-                this.id,
                 this.uuid,
                 this.name,
                 this.description,
                 this.createdDate,
+                this.members.size(),
+                this.events.size(),
                 true,
                 new ArrayList<>(),
                 new ArrayList<>(),

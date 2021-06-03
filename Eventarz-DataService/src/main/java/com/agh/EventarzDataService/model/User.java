@@ -21,8 +21,6 @@ public class User {
     @Getter
     private Long id;
     @Getter
-    private String uuid;
-    @Getter
     @Setter
     private String username;
     @Getter
@@ -51,9 +49,8 @@ public class User {
     private List<Group> foundedGroups;
 
     @PersistenceConstructor
-    public User(Long id, String uuid, String username, String registerDate, SecurityDetails securityDetails, List<Event> events, List<Event> organizedEvents, List<Group> groups, List<Group> foundedGroups) {
+    public User(Long id, String username, String registerDate, SecurityDetails securityDetails, List<Event> events, List<Event> organizedEvents, List<Group> groups, List<Group> foundedGroups) {
         this.id = id;
-        this.uuid = uuid;
         this.username = username;
         this.registerDate = registerDate;
 
@@ -81,10 +78,10 @@ public class User {
     }
 
     public static User of(String username, SecurityDetails securityDetails, List<Event> events, List<Event> organizedEvents, List<Group> groups, List<Group> foundedGroups) {
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         String registerDate = LocalDate.now().format(dtf);
         String uuid = UUID.randomUUID().toString();
-        return new User(null, uuid, username, registerDate, securityDetails, events, organizedEvents, groups, foundedGroups);
+        return new User(null, username, registerDate, securityDetails, events, organizedEvents, groups, foundedGroups);
     }
 
     public void participatesIn(Event event) {
@@ -112,7 +109,7 @@ public class User {
 
         ArrayList<EventDTO> organizedEvents = new ArrayList<>();
         for (Event organizedEvent : this.organizedEvents) {
-            events.add(organizedEvent.createStrippedDTO());
+            organizedEvents.add(organizedEvent.createStrippedDTO());
         }
 
         ArrayList<GroupDTO> groups = new ArrayList<>();
@@ -126,8 +123,6 @@ public class User {
         }
 
         return new UserDTO(
-                this.id,
-                this.uuid,
                 this.username,
                 this.registerDate,
                 false,
@@ -141,8 +136,6 @@ public class User {
 
     public UserDTO createStrippedDTO() {
         return new UserDTO(
-                this.id,
-                this.uuid,
                 this.username,
                 this.registerDate,
                 true,

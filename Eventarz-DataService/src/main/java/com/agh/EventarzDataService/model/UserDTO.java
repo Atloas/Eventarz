@@ -1,18 +1,18 @@
 package com.agh.EventarzDataService.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import lombok.Data;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Data
+@NoArgsConstructor
 public class UserDTO {
 
-    @Getter
-    private Long id;
-    @Getter
-    private String uuid;
     @Getter
     @Setter
     private String username;
@@ -21,11 +21,14 @@ public class UserDTO {
     private String registerDate;
     @Getter
     @Setter
+    private boolean banned;
+    @Getter
+    @Setter
     private boolean stripped;
 
     @Getter
     @Setter
-    public SecurityDetailsDTO securityDetailsDTO;
+    public SecurityDetailsDTO securityDetails;
     @Getter
     @Setter
     public List<EventDTO> events;
@@ -40,13 +43,11 @@ public class UserDTO {
     public List<GroupDTO> foundedGroups;
 
     @JsonCreator
-    public UserDTO(Long id, String uuid, String username, String registerDate, boolean stripped, SecurityDetailsDTO securityDetailsDTO, List<EventDTO> events, List<EventDTO> organizedEvents, List<GroupDTO> groups, List<GroupDTO> foundedGroups) {
-        this.id = id;
-        this.uuid = uuid;
+    public UserDTO(String username, String registerDate, boolean stripped, SecurityDetailsDTO securityDetails, List<EventDTO> events, List<EventDTO> organizedEvents, List<GroupDTO> groups, List<GroupDTO> foundedGroups) {
         this.username = username;
         this.registerDate = registerDate;
         this.stripped = stripped;
-        this.securityDetailsDTO = securityDetailsDTO;
+        this.securityDetails = securityDetails;
         if (events == null) {
             this.events = new ArrayList<>();
         } else {

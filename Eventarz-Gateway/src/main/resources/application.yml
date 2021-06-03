@@ -1,0 +1,12 @@
+spring:
+  cloud.loadbalancer.ribbon.enabled: false
+  application:
+    name: "eventarz-gateway"
+
+eureka:
+  instance:
+    preferIpAddress: true
+
+server:
+  error:
+    includeMessage: always

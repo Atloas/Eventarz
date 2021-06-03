@@ -16,7 +16,9 @@
 package com.agh.EventarzDataService.controllers;
 
 import com.agh.EventarzDataService.EventarzDataServiceApplication;
-import com.agh.EventarzDataService.model.Event;
+import com.agh.EventarzDataService.exceptions.EventNotFoundException;
+import com.agh.EventarzDataService.exceptions.GroupNotFoundException;
+import com.agh.EventarzDataService.exceptions.UserNotFoundException;
 import com.agh.EventarzDataService.model.EventDTO;
 import com.agh.EventarzDataService.model.EventForm;
 import com.agh.EventarzDataService.services.EventService;
@@ -24,14 +26,17 @@ import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -45,21 +50,7 @@ public class EventController {
 
     private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
 
-    @GetMapping("/test")
-    public EventDTO getTestEvent() {
-        EventDTO eventDTO = new EventDTO(null, "2", "3", "4", 5, "6", null, "7", null, true, 0, true, null, null, null);
-        return eventDTO;
-    }
-
-    @GetMapping(value = "/events")
-    @Transactional
-    @Retry(name = "getEventByUuidRetry")
-    public EventDTO getEventByUuid(@RequestParam String uuid) {
-        EventDTO eventDTO = eventService.getEventByUuid(uuid);
-        return eventDTO;
-    }
-
-    @GetMapping(value = "/events/my")
+    @GetMapping(value = "/events", params = {"username"})
     @Transactional
     @Retry(name = "getMyEventsRetry")
     public List<EventDTO> getMyEvents(@RequestParam String username) {
@@ -67,7 +58,7 @@ public class EventController {
         return eventDTOs;
     }
 
-    @GetMapping(value = "/events/regex")
+    @GetMapping(value = "/events", params = {"regex"})
     @Transactional
     @Retry(name = "getEventsRegexRetry")
     public List<EventDTO> getEventsRegex(@RequestParam String regex) {
@@ -75,51 +66,75 @@ public class EventController {
         return eventDTOs;
     }
 
-    @GetMapping(value = "/events/allowedToJoin")
-    @Transactional
-    @Retry(name = "checkIfUserAllowedToJoinRetry")
-    public boolean checkIfUserAllowedToJoin(@RequestParam String uuid, @RequestParam String username) {
-        boolean allowed = eventService.checkIfUserAllowedToJoin(uuid, username);
-        return allowed;
-    }
-
-    @GetMapping(value = "/events/allowedToPublish")
-    @Transactional
-    @Retry(name = "checkIfUserAllowedToPublishRetry")
-    public boolean checkIfUserAllowedToPublish(@RequestParam String groupUuid, @RequestParam String username) {
-        boolean allowed = eventService.checkIfUserAllowedToPublish(groupUuid, username);
-        return allowed;
-    }
-
     @PostMapping(value = "/events")
     @Transactional
     @Retry(name = "createEventRetry")
     public EventDTO createEvent(@RequestBody EventForm eventForm) {
-        EventDTO eventDTO = eventService.createEvent(eventForm);
-        return eventDTO;
+        try {
+            EventDTO eventDTO = eventService.createEvent(eventForm);
+            return eventDTO;
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Organizer not found!", e);
+        } catch (GroupNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found!", e);
+        }
     }
 
-    @PutMapping(value = "/events/join")
+    @GetMapping(value = "/events/{uuid}")
     @Transactional
-    @Retry(name = "joinEventRetry")
-    public EventDTO joinEvent(@RequestParam String uuid, @RequestParam String username) {
-        EventDTO eventDTO = eventService.joinEvent(uuid, username);
-        return eventDTO;
+    @Retry(name = "getEventByUuidRetry")
+    public EventDTO getEventByUuid(@PathVariable String uuid) {
+        try {
+            EventDTO eventDTO = eventService.getEventByUuid(uuid);
+            return eventDTO;
+        } catch (EventNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found!", e);
+        }
     }
 
-    @PutMapping(value = "/events/leave")
+    @PutMapping(value = "/events/{uuid}")
     @Transactional
-    @Retry(name = "leaveEventRetry")
-    public EventDTO leaveEvent(@RequestParam String uuid, @RequestParam String username) {
-        EventDTO eventDTO = eventService.leaveEvent(uuid, username);
-        return eventDTO;
+    @Retry(name = "updateEventRetry")
+    public EventDTO updateEvent(@PathVariable String uuid, @RequestBody EventForm eventForm) {
+        try {
+            EventDTO eventDTO = eventService.updateEvent(uuid, eventForm);
+            return eventDTO;
+        } catch (EventNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found!", e);
+        }
     }
 
-    @DeleteMapping(value = "/events")
+    @DeleteMapping(value = "/events/{uuid}")
     @Transactional
     @Retry(name = "deleteEventRetry")
-    public Long deleteEvent(@RequestParam String uuid) {
-        Long id = eventService.deleteEvent(uuid);
-        return id;
+    public String deleteEvent(@PathVariable String uuid) {
+        eventService.deleteEvent(uuid);
+        return uuid;
+    }
+
+    @PostMapping(value = "/events/{uuid}/participants")
+    @Transactional
+    @Retry(name = "joinEventRetry")
+    public EventDTO joinEvent(@PathVariable String uuid, @RequestBody String username) {
+        try {
+            EventDTO eventDTO = eventService.joinEvent(uuid, username);
+            return eventDTO;
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found!", e);
+        } catch (EventNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found!", e);
+        }
+    }
+
+    @DeleteMapping(value = "/events/{uuid}/participants/{username}")
+    @Transactional
+    @Retry(name = "leaveEventRetry")
+    public EventDTO leaveEvent(@PathVariable String uuid, @PathVariable String username) {
+        try {
+            EventDTO eventDTO = eventService.leaveEvent(uuid, username);
+            return eventDTO;
+        } catch (EventNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found!", e);
+        }
     }
 }

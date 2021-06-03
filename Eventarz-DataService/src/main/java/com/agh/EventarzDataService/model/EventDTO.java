@@ -12,8 +12,6 @@ import java.util.List;
 
 public class EventDTO {
     @Getter
-    private Long id;
-    @Getter
     private String uuid;
     @Getter
     @Setter
@@ -53,8 +51,7 @@ public class EventDTO {
     public GroupDTO group;
 
     @JsonCreator
-    public EventDTO(Long id, String uuid, String name, String description, int maxParticipants, String eventDate, LocalDateTime eventDateObject, String publishedDate, LocalDateTime publishedDateObject, boolean expired, int participantCount, boolean stripped, UserDTO organizer, List<UserDTO> participants, GroupDTO group) {
-        this.id = id;
+    public EventDTO(String uuid, String name, String description, int maxParticipants, String eventDate, LocalDateTime eventDateObject, String publishedDate, LocalDateTime publishedDateObject, boolean expired, int participantCount, boolean stripped, UserDTO organizer, List<UserDTO> participants, GroupDTO group) {
         this.uuid = uuid;
         this.name = name;
         this.description = description;
@@ -84,7 +81,7 @@ public class EventDTO {
 
     public LocalDateTime getEventDateObject() {
         if (eventDateObject == null) {
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
             eventDateObject = LocalDateTime.parse(eventDate, dtf);
         }
         return eventDateObject;
@@ -92,7 +89,7 @@ public class EventDTO {
 
     public LocalDateTime getPublishedDateObject() {
         if (publishedDateObject == null) {
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
             publishedDateObject = LocalDateTime.parse(publishedDate, dtf);
         }
         return publishedDateObject;

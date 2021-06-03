@@ -16,6 +16,9 @@
 package com.agh.EventarzDataService.controllers;
 
 import com.agh.EventarzDataService.EventarzDataServiceApplication;
+import com.agh.EventarzDataService.exceptions.FounderAttemptingToLeaveException;
+import com.agh.EventarzDataService.exceptions.GroupNotFoundException;
+import com.agh.EventarzDataService.exceptions.UserNotFoundException;
 import com.agh.EventarzDataService.model.GroupDTO;
 import com.agh.EventarzDataService.model.GroupForm;
 import com.agh.EventarzDataService.services.GroupService;
@@ -23,14 +26,19 @@ import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -42,15 +50,7 @@ public class GroupController {
 
     private final static Logger log = LoggerFactory.getLogger(EventarzDataServiceApplication.class);
 
-    @GetMapping(value = "/groups")
-    @Transactional
-    @Retry(name = "getGroupByUuidRetry")
-    public GroupDTO getGroupByUuid(@RequestParam String uuid) {
-        GroupDTO groupDTO = groupService.getGroupByUuid(uuid);
-        return groupDTO;
-    }
-
-    @GetMapping(value = "/groups/my")
+    @GetMapping(value = "/groups", params = {"username"})
     @Transactional
     @Retry(name = "getMyGroupsRetry")
     public List<GroupDTO> getMyGroups(@RequestParam String username) {
@@ -58,7 +58,7 @@ public class GroupController {
         return groupDTOs;
     }
 
-    @GetMapping(value = "/groups/regex")
+    @GetMapping(value = "/groups", params = {"regex"})
     @Transactional
     @Retry(name = "getGroupsRegexRetry")
     public List<GroupDTO> getGroupsRegex(@RequestParam String regex) {
@@ -66,43 +66,86 @@ public class GroupController {
         return groupDTOs;
     }
 
-    @PostMapping(value = "/groups")
+    @PostMapping("/groups")
     @Transactional
     @Retry(name = "createGroupRetry")
     public GroupDTO createGroup(@RequestBody GroupForm groupForm) {
-        GroupDTO groupDTO = groupService.createGroup(groupForm);
-        return groupDTO;
+        try {
+            GroupDTO groupDTO = groupService.createGroup(groupForm);
+            return groupDTO;
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Founder not found!", e);
+        }
     }
 
-    @PutMapping(value = "/groups/join")
+    @GetMapping("/groups/{uuid}")
     @Transactional
-    @Retry(name = "joinGroupRetry")
-    public GroupDTO joinGroup(@RequestParam String uuid, @RequestParam String username) {
-        GroupDTO groupDTO = groupService.joinGroup(uuid, username);
-        return groupDTO;
+    @Retry(name = "getGroupByUuidRetry")
+    public GroupDTO getGroupByUuid(@PathVariable String uuid) {
+        try {
+            GroupDTO groupDTO = groupService.getGroupByUuid(uuid);
+            return groupDTO;
+        } catch (GroupNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found!", e);
+        }
     }
 
-    @PutMapping(value = "/groups/leave")
+    @PutMapping("/groups/{uuid}")
     @Transactional
-    @Retry(name = "leaveGroupRetry")
-    public GroupDTO leaveGroup(@RequestParam String uuid, @RequestParam String username) {
-        GroupDTO groupDTO = groupService.leaveGroup(uuid, username);
-        return groupDTO;
+    @Retry(name = "getGroupByUuidRetry")
+    public GroupDTO updateGroup(@PathVariable String uuid, @RequestBody GroupForm groupForm) {
+        try {
+            GroupDTO groupDTO = groupService.updateGroup(uuid, groupForm);
+            return groupDTO;
+        } catch (GroupNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found!", e);
+        }
     }
 
-    @DeleteMapping(value = "/groups")
+    @DeleteMapping("/groups/{uuid}")
     @Transactional
     @Retry(name = "deleteGroupRetry")
-    public Long deleteGroup(@RequestParam String uuid, @RequestParam String username) {
-        Long id = groupService.deleteGroup(uuid, username);
-        return id;
+    public String deleteGroup(@PathVariable String uuid) {
+        groupService.deleteGroup(uuid);
+        return uuid;
     }
 
-    @DeleteMapping(value = "/admin/groups")
+    @PostMapping("/groups/{uuid}/members")
+    @Transactional
+    @Retry(name = "joinGroupRetry")
+    public GroupDTO joinGroup(@PathVariable String uuid, @RequestBody String username) {
+        try {
+            GroupDTO groupDTO = groupService.joinGroup(uuid, username);
+            return groupDTO;
+        } catch (GroupNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found!", e);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found!", e);
+        }
+    }
+
+    @DeleteMapping("/groups/{uuid}/members/{username}")
+    @Transactional
+    @Retry(name = "leaveGroupRetry")
+    public GroupDTO leaveGroup(@PathVariable String uuid, @PathVariable String username) {
+        try {
+            GroupDTO groupDTO = groupService.leaveGroup(uuid, username);
+            return groupDTO;
+        } catch (GroupNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found!", e);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found!", e);
+        } catch (FounderAttemptingToLeaveException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The founder cannot leave their Group!", e);
+        }
+    }
+
+
+    @DeleteMapping("/admin/groups/{uuid}")
     @Transactional
     @Retry(name = "adminDeleteGroupRetry")
-    public Long adminDeleteGroup(@RequestParam String uuid) {
-        Long id = groupService.adminDeleteGroup(uuid);
-        return id;
+    public ResponseEntity<String> adminDeleteGroup(@PathVariable String uuid) {
+        groupService.deleteGroup(uuid);
+        return ResponseEntity.ok(uuid);
     }
 }

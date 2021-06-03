@@ -7,21 +7,28 @@ import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface UserRepository extends Neo4jRepository<User, Long> {
-    Optional<User> findByUuid(String uuid);
 
-    Optional<User> findByUsername(String username);
+    User findByUsername(String username);
 
     List<User> findByUsernameRegex(String regex);
 
-    Optional<Long> deleteByUsername(String username);
+    Long deleteByUsername(String username);
 
-    @Query("MATCH (u:User {username: $0}) RETURN u.uuid")
-    Optional<String> findUuidByUsername(String username);
+    @Query("MATCH (u:User {username: $0})<-[:DETAILS_OF]-(s:SecurityDetails) SET s.banned=$1")
+    void changeBanStatus(String username, boolean banned);
 
-    @Query("MATCH (user:User {username: $0})<-[:DETAILS_OF]-(details:SECURITY_DETAILS) RETURN details")
-    Optional<SecurityDetails> findDetailsFor(String username);
+    @Query("MATCH (u:User {username: $0})-[r:PARTICIPATES_IN]->(:Event) DELETE r")
+    void removeFromEvents(String username);
+
+    @Query("MATCH (u:User {username: $0})-[r:BELONGS_TO]->(:Group) DELETE r")
+    void removeFromGroups(String username);
+
+    @Query("RETURN EXISTS((:User {username: $0})<-[:DETAILS_OF]-(:SecurityDetails))")
+    boolean checkIfUserExists(String username);
+
+    @Query("MATCH (user:User {username: $0})<-[:DETAILS_OF]-(details:SecurityDetails) RETURN details")
+    SecurityDetails findDetailsFor(String username);
 }

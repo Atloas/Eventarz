@@ -1,0 +1,36 @@
+spring:
+  cloud.loadbalancer.ribbon.enabled: false
+  application:
+    name: "eventarz-zuul-proxy"
+
+server:
+  use-forward-headers: true
+  ssl:
+    key-store-type: PKCS12
+    key-store: classpath:keystore/eventarz.p12
+    key-store-password: password
+    key-alias: eventarz
+    enabled: true
+
+ribbon:
+  ReadTimeout: 60000
+
+zuul:
+  ignoredServices: '*'
+  debug.request: true
+  add-proxy-headers: true
+  sensitive-headers:
+  routes:
+    gateway:
+      path: /gateway/**
+      serviceId: eventarz-gateway
+    application:
+      path: /**
+      serviceId: eventarz-application
+
+logging:
+  level:
+    org:
+      springframework:
+        cloud:
+          netflix: debug

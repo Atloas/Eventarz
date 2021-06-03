@@ -17,21 +17,26 @@ public class SecurityDetailsDTO {
     private String passwordHash;
     @Getter
     @Setter
+    private boolean banned;
+    @Getter
+    @Setter
     private List<String> roles;
 
-    public SecurityDetailsDTO(Long id, String passwordHash, List<String> roles) {
+    public SecurityDetailsDTO(Long id, String passwordHash, boolean banned, List<String> roles) {
         this.id = id;
         this.passwordHash = passwordHash;
+        this.banned = banned;
         this.roles = new ArrayList<String>(roles);
     }
 
-    public static SecurityDetailsDTO of(String passwordHash, List<String> roles) {
-        return new SecurityDetailsDTO(null, passwordHash, roles);
+    public static SecurityDetailsDTO of(String passwordHash, boolean banned, List<String> roles) {
+        return new SecurityDetailsDTO(null, passwordHash, banned, roles);
     }
 
     public SecurityDetailsDTO(SecurityDetailsDTO that) {
         this.id = that.id;
         this.passwordHash = that.passwordHash;
+        this.banned = that.banned;
         this.roles = new ArrayList<>(that.roles);
     }
 }

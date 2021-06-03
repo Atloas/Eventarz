@@ -1,5 +1,8 @@
 package com.agh.EventarzDataService.services;
 
+import com.agh.EventarzDataService.exceptions.EventNotFoundException;
+import com.agh.EventarzDataService.exceptions.GroupNotFoundException;
+import com.agh.EventarzDataService.exceptions.UserNotFoundException;
 import com.agh.EventarzDataService.model.Event;
 import com.agh.EventarzDataService.model.EventDTO;
 import com.agh.EventarzDataService.model.EventForm;
@@ -13,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class EventService {
@@ -25,12 +27,12 @@ public class EventService {
     @Autowired
     private GroupRepository groupRepository;
 
-    public EventDTO getEventByUuid(String uuid) {
-        Optional<Event> event = eventRepository.findByUuid(uuid);
-        EventDTO eventDTO = null;
-        if (event.isPresent()) {
-            eventDTO = event.get().createDTO();
+    public EventDTO getEventByUuid(String uuid) throws EventNotFoundException {
+        Event event = eventRepository.findByUuid(uuid);
+        if (event == null) {
+            throw new EventNotFoundException("Event " + uuid + " not found!");
         }
+        EventDTO eventDTO = event.createDTO();
         return eventDTO;
     }
 
@@ -53,58 +55,76 @@ public class EventService {
         return eventDTOs;
     }
 
-    public boolean checkIfUserAllowedToJoin(String uuid, String username) {
-        return eventRepository.checkIfAllowedToJoinEvent(uuid, username);
-    }
-
-    public boolean checkIfUserAllowedToPublish(String groupUuid, String username) {
-        return eventRepository.checkIfAllowedToPublishEvent(groupUuid, username);
-    }
-
-    public EventDTO createEvent(EventForm eventForm) {
-        //Assumes valid eventForm
-        Optional<User> organizer = userRepository.findByUsername(eventForm.getOrganizerUsername());
-        Optional<Group> group = groupRepository.findByUuid(eventForm.getGroupUuid());
-        if (organizer.isPresent() && group.isPresent()) {
-            Event newEvent = null;
-            newEvent = Event.of(eventForm.getName(), eventForm.getDescription(), eventForm.getMaxParticipants(), eventForm.getEventDate(), organizer.get(), new ArrayList<>(), group.get());
-            if (eventForm.isParticipate()) {
-                newEvent.participatedBy(organizer.get());
-            }
-            newEvent = eventRepository.save(newEvent);
-            return newEvent.createDTO();
-        } else {
-            //TODO: Some error handling or reporting?
-            return null;
+    public EventDTO createEvent(EventForm eventForm) throws UserNotFoundException, GroupNotFoundException {
+        User organizer = userRepository.findByUsername(eventForm.getOrganizerUsername());
+        if (organizer == null) {
+            throw new UserNotFoundException("User " + eventForm.getOrganizerUsername() + " not found!");
         }
-    }
-
-    public EventDTO joinEvent(String uuid, String username) {
-        Optional<Event> event = eventRepository.findByUuid(uuid);
-        Optional<User> user = userRepository.findByUsername(username);
-        EventDTO eventDTO = null;
-        if (event.isPresent() && user.isPresent()) {
-            event.get().participatedBy(user.get());
-            eventRepository.participatesIn(event.get().getUuid(), username);
-            eventDTO = event.get().createDTO();
+        Group group = groupRepository.findByUuid(eventForm.getGroupUuid());
+        if (group == null) {
+            throw new GroupNotFoundException("Group " + eventForm.getGroupUuid() + " not found!");
         }
+        Event event = new Event(eventForm, organizer, group);
+        if (eventForm.isParticipate()) {
+            event.participatedBy(organizer);
+        }
+        event = eventRepository.save(event);
+        EventDTO eventDTO = event.createDTO();
         return eventDTO;
     }
 
-    public EventDTO leaveEvent(String uuid, String username) {
-        Optional<Event> event = eventRepository.findByUuid(uuid);
-        EventDTO eventDTO = null;
-        if (event.isPresent()) {
-            if (event.get().leftBy(username)) {
-                eventRepository.leftBy(username, uuid);
-            }
-            eventDTO = event.get().createDTO();
+    public EventDTO updateEvent(String uuid, EventForm eventForm) throws EventNotFoundException {
+        Event event = eventRepository.findByUuid(uuid);
+        if (event == null) {
+            throw new EventNotFoundException("Event " + uuid + " not gound!");
         }
+        boolean clearParticipants = false;
+        if (event.getMaxParticipants() > eventForm.getMaxParticipants()) {
+            clearParticipants = true;
+        }
+        event.setName(eventForm.getName());
+        event.setDescription(eventForm.getDescription());
+        event.setEventDate(eventForm.getEventDate());
+        event.setMaxParticipants(eventForm.getMaxParticipants());
+        event = eventRepository.save(event);
+        if (clearParticipants) {
+            // This needs to happen AFTER save, otherwise it doesn't actually change anything
+            eventRepository.dropAllParticipants(uuid);
+            event.getParticipants().clear();
+        }
+        EventDTO eventDTO = event.createDTO();
         return eventDTO;
     }
 
-    public Long deleteEvent(String uuid) {
-        return eventRepository.deleteByUuid(uuid).orElse(null);
+    public EventDTO joinEvent(String uuid, String username) throws UserNotFoundException, EventNotFoundException {
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            throw new UserNotFoundException("User " + username + " not found!");
+        }
+        Event event = eventRepository.findByUuid(uuid);
+        if (event == null) {
+            throw new EventNotFoundException("Event " + uuid + " not found!");
+        }
+        event.participatedBy(user);
+        eventRepository.join(event.getUuid(), username);
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
+    }
+
+    public EventDTO leaveEvent(String uuid, String username) throws EventNotFoundException {
+        Event event = eventRepository.findByUuid(uuid);
+        if (event == null) {
+            throw new EventNotFoundException("Event " + uuid + " not found!");
+        }
+        event.leftBy(username);
+        eventRepository.leave(username, uuid);
+        EventDTO eventDTO = event.createDTO();
+        return eventDTO;
+    }
+
+    public String deleteEvent(String uuid) {
+        eventRepository.deleteByUuid(uuid);
+        return uuid;
     }
 
     /**

@@ -9,8 +9,6 @@ import java.util.List;
 
 public class GroupDTO {
     @Getter
-    private Long id;
-    @Getter
     private String uuid;
     @Getter
     @Setter
@@ -21,6 +19,12 @@ public class GroupDTO {
     @Getter
     @Setter
     private String createdDate;
+    @Getter
+    @Setter
+    private int memberCount;
+    @Getter
+    @Setter
+    private int eventCount;
     @Getter
     @Setter
     private boolean stripped;
@@ -36,26 +40,31 @@ public class GroupDTO {
     public UserDTO founder;
 
     @JsonCreator
-    public GroupDTO(Long id, String uuid, String name, String description, String createdDate, boolean stripped, List<UserDTO> members, List<EventDTO> events, UserDTO founder) {
-        this.id = id;
+    public GroupDTO(String uuid, String name, String description, String createdDate, int memberCount, int eventCount, boolean stripped, List<UserDTO> members, List<EventDTO> events, UserDTO founder) {
         this.uuid = uuid;
         this.name = name;
         this.description = description;
         this.createdDate = createdDate;
         this.stripped = stripped;
         if (stripped) {
+            this.memberCount = memberCount;
+            this.eventCount = eventCount;
             this.members = null;
             this.events = null;
             this.founder = null;
         } else {
             if (members == null) {
+                this.memberCount = 0;
                 this.members = new ArrayList<>();
             } else {
+                this.memberCount = members.size();
                 this.members = members;
             }
             if (events == null) {
+                this.eventCount = 0;
                 this.events = new ArrayList<>();
             } else {
+                this.eventCount = events.size();
                 this.events = events;
             }
             this.founder = founder;

@@ -1,0 +1,17 @@
+spring:
+  cloud.loadbalancer.ribbon.enabled: false
+  application:
+    name: "eventarz-data-service"
+  data:
+    neo4j:
+      uri: "bolt://ec2-3-129-39-139.us-east-2.compute.amazonaws.com:7687"
+      username: "neo4j"
+      password: "i-0fb5191d82a056e60"
+
+logging:
+  level:
+    org.neo4j.ogm.drivers.bolt.request.BoltRequest: DEBUG
+
+server:
+  error:
+    includeMessage: always

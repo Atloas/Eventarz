@@ -24,10 +24,13 @@ public class SecurityDetails {
     private String passwordHash;
     @Getter
     @Setter
+    private boolean banned;
+    @Getter
+    @Setter
     private List<String> roles;
 
-    public static SecurityDetails of(String passwordHash, List<String> roles) {
-        return new SecurityDetails(null, passwordHash, roles);
+    public static SecurityDetails of(String passwordHash, boolean banned, List<String> roles) {
+        return new SecurityDetails(null, passwordHash, banned, roles);
     }
 
     public SecurityDetails(SecurityDetails that) {
@@ -37,6 +40,6 @@ public class SecurityDetails {
     }
 
     public SecurityDetailsDTO createDTO() {
-        return new SecurityDetailsDTO(this.id, this.passwordHash, this.roles);
+        return new SecurityDetailsDTO(this.id, this.passwordHash, this.banned, this.roles);
     }
 }

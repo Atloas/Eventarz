@@ -71,10 +71,24 @@ public class Event {
     }
 
     public static Event of(String name, String description, int maxParticipants, String eventDate, User organizer, List<User> participants, Group group) {
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
         String publishedDate = LocalDateTime.now().format(dtf);
         String uuid = UUID.randomUUID().toString();
         return new Event(null, uuid, name, description, maxParticipants, eventDate, publishedDate, organizer, participants, group);
+    }
+
+    public Event (EventForm eventForm, User organizer, Group group) {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+        String publishedDate = LocalDateTime.now().format(dtf);
+        this.uuid = UUID.randomUUID().toString();
+        this.name = eventForm.getName();
+        this.description = eventForm.getDescription();
+        this.eventDate = eventForm.getEventDate();
+        this.publishedDate = publishedDate;
+        this.maxParticipants = eventForm.getMaxParticipants();
+        this.participants = new ArrayList<>();
+        this.organizer = organizer;
+        this.group = group;
     }
 
     //TODO: Exception over return value for failure state?
@@ -115,7 +129,6 @@ public class Event {
         }
 
         return new EventDTO(
-                this.id,
                 this.uuid,
                 this.name,
                 this.description,
@@ -136,7 +149,6 @@ public class Event {
 
     public EventDTO createStrippedDTO() {
         return new EventDTO(
-                this.id,
                 this.uuid,
                 this.name,
                 this.description,
